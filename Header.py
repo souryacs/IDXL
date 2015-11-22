@@ -16,8 +16,10 @@ import numpy
 import sys
 #import matplotlib.pyplot as plt
 
-""" this dictionary defines the taxa pair relations
-each entry is indexed by two nodes """
+""" 
+this dictionary defines the taxa pair relations
+each entry is indexed by two nodes 
+"""
 TaxaPair_Reln_Dict = dict()
 
 # these variables store the respective parameters of input gene trees
@@ -25,15 +27,16 @@ COMPLETE_INPUT_TAXA_LIST = []
 
 # this is the debug level
 # set for printing the necessary information
-DEBUG_LEVEL = 2
+DEBUG_LEVEL = 0
 
-# variables depicting the method employed for species tree construction
-# first two methods use average statistics of the coalescence rank or the internode count
-# last two methods employ the mode statistics
-
+"""
+variables depicting the method employed for species tree construction
+first two methods use average statistics of the coalescence rank or the internode count
+last two methods employ the mode statistics
+"""
 # accumulated internode count with average statistics
 # already implemented as a method NJ_ST in Liu et. al. 2011
-NJ_ST = 1
+NJ_ST_XL = 1
 # NJ_ST method with mode based filtered average of the accumulated internode count
 # (1 + no of internodes)
 M_NJ_ST = 2
@@ -45,6 +48,16 @@ M_NJ_ST_XL = 3
 # or use a variant of it, namely the agglomerative clustering
 TRADITIONAL_NJ = 1
 AGGLO_CLUST = 2
+
+# used to avoid division by 0
+SMALL_THR = 0.0000001
+
+"""
+this is a list of couplets which are siblings
+according to their R3 consensus relation
+"""
+Sibling_Couplet_List = []
+
 
 ##-----------------------------------------------------
 """ 
@@ -60,7 +73,27 @@ class Reln_TaxaPair(object):
 		self.level_info_list = []
 		# this is the extra lineage count list for this couplet
 		self.XL_val_list = []
-						
+		
+		"""
+		for a couplet xy, and for a relation r3, following array has 3 elements:
+		1) count when level of x < level of y (relation r1 similar)
+		2) count when level of x > level of y (relation r2 similar)
+		3) count when level of x = level of y (relation r3 similar)
+		"""
+		self.ALL_Reln_Level_Diff_Info_Count = [0] * 3
+		
+	def _IncrAllRelnLevelDiffInfoCount(self, idx):
+		self.ALL_Reln_Level_Diff_Info_Count[idx] = self.ALL_Reln_Level_Diff_Info_Count[idx] + 1
+		
+	def _CheckR3RelnLevelConsensus(self):
+		# comment - sourya
+		#if (self.ALL_Reln_Level_Diff_Info_Count[2] > (self.ALL_Reln_Level_Diff_Info_Count[0] + self.ALL_Reln_Level_Diff_Info_Count[1])):
+		# add - sourya
+		if (self.ALL_Reln_Level_Diff_Info_Count[2] > self.ALL_Reln_Level_Diff_Info_Count[0]) \
+			and (self.ALL_Reln_Level_Diff_Info_Count[2] > self.ALL_Reln_Level_Diff_Info_Count[1]):
+			return True
+		return False
+		
 	# this function adds the count of tree according to the support of 
 	# corresponding couplet in the input tree
 	def _IncrSupportTreeCount(self):
@@ -75,6 +108,15 @@ class Reln_TaxaPair(object):
 
 	def _GetAvgXLVal(self):
 		return (sum(self.XL_val_list) * 1.0) / self.tree_support_count
+	
+	def _MedianXLVal(self):
+		return numpy.median(numpy.array(self.XL_val_list))
+	
+	#def _MinAvgMedianXLVal(self):
+		#return min(self._MedianXLVal(), self._GetAvgXLVal())
+
+	#def _MaxAvgMedianXLVal(self):
+		#return max(self._MedianXLVal(), self._GetAvgXLVal())
 					
 	def _GetMultiModeXLVal(self):
 		candidate_score_sum = 0
@@ -125,8 +167,11 @@ class Reln_TaxaPair(object):
 		fp = open(out_text_file, 'a')    
 		fp.write('\n taxa pair key: ' + str(key))
 		fp.write('\n supporting number of trees: ' + str(self._GetSupportTreeCount()))
-		if (METHOD_USED == NJ_ST):
+		if (METHOD_USED == NJ_ST_XL):
 			fp.write('\n *** average sum of internode count : ' + str(self._GetAvgSumLevel()))    
+			fp.write('\n *** average XL val : ' + str(self._GetAvgXLVal()))   
+			fp.write('\n *** median XL val : ' + str(self._MedianXLVal()))   
+			fp.write('\n *** 50 percent mode XL val : ' + str(self._GetMultiModeXLVal()))   
 		elif (METHOD_USED == M_NJ_ST):
 			fp.write('\n *** 50 percent mode internode count : ' + str(self._GetMultiModeSumLevel()))   
 		elif (METHOD_USED == M_NJ_ST_XL):
@@ -164,7 +209,6 @@ class Reln_TaxaPair(object):
 			#plt.savefig(figname)      
 			## end sourya - debug
 			
-		
 		fp.close()
     
       

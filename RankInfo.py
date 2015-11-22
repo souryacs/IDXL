@@ -13,7 +13,12 @@ def DefineAccBranchXL(xl_val, curr_node_level, node1, node2):
 	which is 1 more than the internode count
 	somehow, enforcing greater value increases performance
 	"""
-	sum_of_branch_count = ((node1.level() - curr_node_level) + (node2.level() - curr_node_level))
+	# add - sourya
+	node1_level = node1.level()
+	node2_level = node2.level()
+	# end add - sourya
+	
+	sum_of_branch_count = ((node1_level - curr_node_level) + (node2_level - curr_node_level)) - 1
 
 	key1 = (node1.taxon.label, node2.taxon.label)
 	key2 = (node2.taxon.label, node1.taxon.label)
@@ -21,16 +26,40 @@ def DefineAccBranchXL(xl_val, curr_node_level, node1, node2):
 		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key1]._AddLevel(sum_of_branch_count)
 		TaxaPair_Reln_Dict[key1]._AddXLVal(xl_val)
+		# add - sourya
+		if (node1_level < node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(0)
+		elif (node1_level > node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(1)
+		else:
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(2)
+		# end add - sourya
 	elif key2 in TaxaPair_Reln_Dict:
 		TaxaPair_Reln_Dict[key2]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key2]._AddLevel(sum_of_branch_count)
 		TaxaPair_Reln_Dict[key2]._AddXLVal(xl_val)
+		# add - sourya
+		if (node1_level < node2_level):
+			TaxaPair_Reln_Dict[key2]._IncrAllRelnLevelDiffInfoCount(1)
+		elif (node1_level > node2_level):
+			TaxaPair_Reln_Dict[key2]._IncrAllRelnLevelDiffInfoCount(0)
+		else:
+			TaxaPair_Reln_Dict[key2]._IncrAllRelnLevelDiffInfoCount(2)
+		# end add - sourya
 	else:
 		TaxaPair_Reln_Dict.setdefault(key1, Reln_TaxaPair())
 		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key1]._AddLevel(sum_of_branch_count)
 		TaxaPair_Reln_Dict[key1]._AddXLVal(xl_val)
-
+		# add - sourya
+		if (node1_level < node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(0)
+		elif (node1_level > node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(1)
+		else:
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(2)
+		# end add - sourya
+		
 	return
 
 #--------------------------------------------------------
@@ -42,21 +71,50 @@ def DefineAccBranch(curr_node_level, node1, node2):
 	sourya - instead of using the internode count, we are using the number of branches
 	which is 1 more than the internode count
 	somehow, enforcing greater value increases performance
-	"""	
-	sum_of_branch_count = ((node1.level() - curr_node_level) + (node2.level() - curr_node_level))
+	"""
+	# add - sourya
+	node1_level = node1.level()
+	node2_level = node2.level()
+	# end add - sourya
+	
+	sum_of_branch_count = ((node1_level - curr_node_level) + (node2_level - curr_node_level)) - 1
 
 	key1 = (node1.taxon.label, node2.taxon.label)
 	key2 = (node2.taxon.label, node1.taxon.label)
 	if key1 in TaxaPair_Reln_Dict:
 		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key1]._AddLevel(sum_of_branch_count)
+		# add - sourya
+		if (node1_level < node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(0)
+		elif (node1_level > node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(1)
+		else:
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(2)
+		# end add - sourya
 	elif key2 in TaxaPair_Reln_Dict:
 		TaxaPair_Reln_Dict[key2]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key2]._AddLevel(sum_of_branch_count)
+		# add - sourya
+		if (node1_level < node2_level):
+			TaxaPair_Reln_Dict[key2]._IncrAllRelnLevelDiffInfoCount(1)
+		elif (node1_level > node2_level):
+			TaxaPair_Reln_Dict[key2]._IncrAllRelnLevelDiffInfoCount(0)
+		else:
+			TaxaPair_Reln_Dict[key2]._IncrAllRelnLevelDiffInfoCount(2)
+		# end add - sourya
 	else:
 		TaxaPair_Reln_Dict.setdefault(key1, Reln_TaxaPair())
 		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key1]._AddLevel(sum_of_branch_count)
+		# add - sourya
+		if (node1_level < node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(0)
+		elif (node1_level > node2_level):
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(1)
+		else:
+			TaxaPair_Reln_Dict[key1]._IncrAllRelnLevelDiffInfoCount(2)
+		# end add - sourya
 
 	return
 
@@ -84,9 +142,9 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 		if (len(curr_node_child_leaf_nodes) > 1):
 			for i in range(len(curr_node_child_leaf_nodes) - 1):
 				for j in range(i+1, len(curr_node_child_leaf_nodes)):
-					if (METHOD_USED == NJ_ST) or (METHOD_USED == M_NJ_ST):
+					if (METHOD_USED == M_NJ_ST):
 						DefineAccBranch(curr_node_level, curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
-					elif (METHOD_USED == M_NJ_ST_XL):
+					elif (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
 						DefineAccBranchXL(xl_val, curr_node_level, curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
 		
 		# one leaf node (direct descendant) and another leaf node (under one internal node)
@@ -95,9 +153,9 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 			for p in curr_node_child_leaf_nodes:
 				for q in curr_node_child_internal_nodes:
 					for r in q.leaf_nodes():
-						if (METHOD_USED == NJ_ST) or (METHOD_USED == M_NJ_ST):
+						if (METHOD_USED == M_NJ_ST):
 							DefineAccBranch(curr_node_level, p, r)
-						elif (METHOD_USED == M_NJ_ST_XL):
+						elif (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
 							DefineAccBranchXL(xl_val, curr_node_level, p, r)
 				
 		# finally a pair of leaf nodes which are descendant of internal nodes will be related by NO_EDGE relation
@@ -106,9 +164,9 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 				for j in range(i+1, len(curr_node_child_internal_nodes)):
 					for p in curr_node_child_internal_nodes[i].leaf_nodes():
 						for q in curr_node_child_internal_nodes[j].leaf_nodes():
-							if (METHOD_USED == NJ_ST) or (METHOD_USED == M_NJ_ST):
+							if (METHOD_USED == M_NJ_ST):
 								DefineAccBranch(curr_node_level, p, q)
-							elif (METHOD_USED == M_NJ_ST_XL):
+							elif (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
 								DefineAccBranchXL(xl_val, curr_node_level, p, q)
 		
 	return
