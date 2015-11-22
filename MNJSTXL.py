@@ -69,9 +69,8 @@ def parse_options():
 				action="store", \
 				dest="method_type", \
 				default=1, \
-				help="1 - Average NJ_ST with XL \
-				2 - mode based accumulated branch count of the couplets (M_NJ_ST) (mode based adaptation of NJ_ST) \
-				3 - product of mode based accumulated branch count with extra lineage information (M_NJ_ST_XL)")
+				help="1 - NJSTXL (Average of internode count and average of excess gene count) \
+				2 - NJ_ST with median of excess gene count (MNJSTXL)")
 			
 	parser.add_option("-n", "--njrule", \
 				type="int", \
@@ -81,14 +80,14 @@ def parse_options():
 				help="1 - classical NJ method (Default) \
 				2 - Normalized couplet statistic for agglomeration")     
 	
-	parser.add_option("-d", "--distmat", \
-				type="int", \
-				action="store", \
-				dest="dist_mat_type", \
-				default=1, \
-				help="1 - Average of XL values \
-				2 - Minimum of median and average of XL values \
-				3 - Minimum of median, average, and mode of XL values")     
+	#parser.add_option("-d", "--distmat", \
+				#type="int", \
+				#action="store", \
+				#dest="dist_mat_type", \
+				#default=1, \
+				#help="1 - Average of XL values \
+				#2 - Minimum of median and average of XL values \
+				#3 - Minimum of median, average, and mode of XL values")     
 	
 	parser.add_option("-u", "--update", \
 				type="int", \
@@ -125,7 +124,7 @@ def main():
 	METHOD_USED = opts.method_type
 
 	NJ_RULE_USED = opts.NJ_type
-	XL_DIST_MAT_ELEM_TYPE = opts.dist_mat_type
+	#XL_DIST_MAT_ELEM_TYPE = opts.dist_mat_type
 	XL_DISTMAT_UPDATE_METHOD = opts.update_dist_mat
 	
 	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
@@ -158,15 +157,10 @@ def main():
 
 	if (OUTPUT_FILENAME == ""):
 		# derive the output directory which will contain different output text results
-		if (METHOD_USED == NJ_ST_XL):
-			dir_of_curr_exec = dir_of_inp_file + 'NJSTXL_N' + str(NJ_RULE_USED) + '_D' + str(XL_DIST_MAT_ELEM_TYPE) + '_U' + str(XL_DISTMAT_UPDATE_METHOD)
-		elif (METHOD_USED == M_NJ_ST):
-			dir_of_curr_exec = dir_of_inp_file + 'M_NJ_ST'
-		elif (METHOD_USED == M_NJ_ST_XL):
-			dir_of_curr_exec = dir_of_inp_file + 'M_NJ_ST_XL'
-		
-		#dir_of_curr_exec = dir_of_curr_exec + '_NJ_Rule_' + str(NJ_RULE_USED) 
-			
+		if (METHOD_USED == NJSTXL):
+			dir_of_curr_exec = dir_of_inp_file + 'NJSTXL_N' + str(NJ_RULE_USED) + '_U' + str(XL_DISTMAT_UPDATE_METHOD)
+		elif (METHOD_USED == MNJSTXL):
+			dir_of_curr_exec = dir_of_inp_file + 'MNJSTXL_N' + str(NJ_RULE_USED) + '_U' + str(XL_DISTMAT_UPDATE_METHOD)
 		# append the current output directory in the text file
 		Output_Text_File = dir_of_curr_exec + '/' + 'Complete_Desription.txt'
 		# create the directory
@@ -216,18 +210,6 @@ def main():
 	# note the time taken for reading the dataset
 	time_read_dataset = (end_timestamp - start_timestamp)
 
-	#---------------------------------------------
-	#"""
-	#this part has been added by sourya
-	#for individual couplets, we check whether they are predominantly siblings in the gene trees
-	#in such a case, we add these couplets in the following list
-	#"""
-	#for l in TaxaPair_Reln_Dict:
-		#if (TaxaPair_Reln_Dict[l]._CheckR3RelnLevelConsensus() == True):
-			#Sibling_Couplet_List.append([l[0], l[1]])
-
-	#---------------------------------------------
-
 	fp = open(Output_Text_File, 'w')    
 	fp.write('\n  total no of taxa: ' + str(len(COMPLETE_INPUT_TAXA_LIST)))
 	if (DEBUG_LEVEL >= 2):
@@ -263,8 +245,7 @@ def main():
 		fp.close()
 
 	# now perform the agglomerative clustering technique based on the extra lineages
-	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, \
-		XL_DIST_MAT_ELEM_TYPE, XL_DISTMAT_UPDATE_METHOD)
+	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, XL_DISTMAT_UPDATE_METHOD)
 
 	fp = open(Output_Text_File, 'a')
 	fp.write('\n --- output species tree (in newick format): ' + Output_Tree.as_newick_string())    

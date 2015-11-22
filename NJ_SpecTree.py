@@ -40,12 +40,14 @@ def Fill_DistMat_BranchInfo(DistMat, METHOD_USED):
 		spec2 = l[1]
 		spec1_idx = COMPLETE_INPUT_TAXA_LIST.index(spec1)
 		spec2_idx = COMPLETE_INPUT_TAXA_LIST.index(spec2)
-		if (METHOD_USED == NJ_ST_XL):
+		if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgSumLevel()
 			DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
-		elif (METHOD_USED == M_NJ_ST) or (METHOD_USED == M_NJ_ST_XL):
-			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetMultiModeSumLevel()
-			DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
+		
+		#elif (METHOD_USED == M_NJ_ST) or (METHOD_USED == MNJSTXL):
+			#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetMultiModeSumLevel()
+			#DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
+	
 	return
 
 #----------------------------------------------------
@@ -53,27 +55,21 @@ def Fill_DistMat_BranchInfo(DistMat, METHOD_USED):
 if excess gene count information is used, this 
 function fills the distance matrix using normalized average excess gene count
 """
-def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED, XL_DIST_MAT_ELEM_TYPE):
+def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED):
 	for l in TaxaPair_Reln_Dict:
 		spec1 = l[0]
 		spec2 = l[1]
 		spec1_idx = COMPLETE_INPUT_TAXA_LIST.index(spec1)
 		spec2_idx = COMPLETE_INPUT_TAXA_LIST.index(spec2)
-		if (METHOD_USED == NJ_ST_XL):
-			if (XL_DIST_MAT_ELEM_TYPE == 1):
-				DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
-			elif (XL_DIST_MAT_ELEM_TYPE == 2):
-				# minimum of average and median of XL values
-				DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
-			else:
-				DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), \
-					TaxaPair_Reln_Dict[l]._MedianXLVal(), TaxaPair_Reln_Dict[l]._GetMultiModeXLVal())
-			# symmetric property of the distance matrix
-			DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
-		elif (METHOD_USED == M_NJ_ST_XL):
-			# mean of XL value
+		if (METHOD_USED == NJSTXL):
 			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
-			DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
+		elif (METHOD_USED == MNJSTXL):
+			# minimum of average and median of XL values
+			DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
+		
+		# symmetric property of the distance matrix
+		DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
+
 	return
 
 #---------------------------------------------
@@ -124,126 +120,23 @@ def FillNJNormalizeMatrix(NormMat, DistMat, sum_list, nclust):
 
 	return
 
-#----------------------------------------------------------
-#"""
-#fill the normalized matrix entries for NJ based method
-#this is for XL based approach - for debug - sourya
-#"""
-#def Fill_XL_NJNormalizeMatrix(NormMat, DistMat, sum_list, nclust):
-	#for i in range(nclust - 1):
-		#for j in range(i+1, nclust):
-			## modified - sourya
-			#ri = (sum_list[i] - DistMat[i][j]) / (nclust - 2)
-			#rj = (sum_list[j] - DistMat[i][j]) / (nclust - 2)
-			#NormMat[i][j] = (DistMat[i][j] - ri - rj)
-			#NormMat[j][i] = NormMat[i][j]
-
-	#return
-
 #---------------------------------------------
-"""
-finds the minimum of the distance matrix
-when only branch count based measure is used
-"""
-def Find_Unique_Min(Norm_DistMat_Branch, nclust):
-	target_val = Norm_DistMat_Branch[0][1]
-	min_idx_i = 0
-	min_idx_j = 1
-	for i in range(nclust - 1):
-		for j in range(i+1, nclust):
-			if (i == j):
-				continue
-			if (Norm_DistMat_Branch[i][j] < target_val):
-				target_val = Norm_DistMat_Branch[i][j]
-				min_idx_i = i
-				min_idx_j = j
-	
-	return min_idx_i, min_idx_j
-
-#---------------------------------------------
-"""
-finds the minimum of the distance matrix
-using both branch count and XL measure
-"""
-def Find_Unique_Min_XL(Norm_DistMat_Branch, Norm_DistMat_XL, nclust, NJ_RULE_USED):
-	"""
-	for NJ based method, both normalized entries (minimum) would be negative
-	so a '>' sign is employed
-	for agglomerative clustering method, entries will be very small but positive
-	so a '<' sign is employed
-	"""
-	target_val = (Norm_DistMat_Branch[0][1] * Norm_DistMat_XL[0][1])
-	min_idx_i = 0
-	min_idx_j = 1
-	for i in range(nclust - 1):
-		for j in range(i+1, nclust):
-			if (i == j):
-				continue
-			if (NJ_RULE_USED == AGGLO_CLUST) and ((Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j]) < target_val):
-				target_val = (Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j])
-				min_idx_i = i
-				min_idx_j = j
-			if (NJ_RULE_USED == TRADITIONAL_NJ) and ((Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j]) > target_val):
-				target_val = (Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j])
-				min_idx_i = i
-				min_idx_j = j
-	
-	return min_idx_i, min_idx_j
-
-
-#-------------------------------------------
-"""
-this function has been commented - sourya
-"""
-#def CheckFalseLeafMerging(clust_species_list, i, j):
-	## check we are merging two leaves
-	#if (len(clust_species_list[i]) == 1) and (len(clust_species_list[j]) == 1):
-		#l1 = [clust_species_list[i][0], clust_species_list[j][0]]
-		#l2 = [clust_species_list[j][0], clust_species_list[i][0]]
-		#if (l1 not in Sibling_Couplet_List) and (l2 not in Sibling_Couplet_List):
-			## originally not siblings, as per gene trees
-			#return True
-		
-	#return False
-
-#-------------------------------------------
 #"""
 #finds the minimum of the distance matrix
-#using both branch count and XL measure
+#when only branch count based measure is used
 #"""
-#def Find_Unique_Min_NJ_XL(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, Norm_DistMat_XL, nclust, NJ_RULE_USED, clust_species_list):
-
-	#if (DistMat_XL[0][1] > 0):
-		#denom = DistMat_XL[0][1]
-	#else:
-		#denom = SMALL_THR
-	#target_val = (Norm_DistMat_Branch[0][1] / denom)
-	
+#def Find_Unique_Min(Norm_DistMat_Branch, nclust):
+	#target_val = Norm_DistMat_Branch[0][1]
 	#min_idx_i = 0
 	#min_idx_j = 1
 	#for i in range(nclust - 1):
 		#for j in range(i+1, nclust):
 			#if (i == j):
 				#continue
-			#if (NJ_RULE_USED == AGGLO_CLUST):
-				#if ((Norm_DistMat_Branch[i][j] * DistMat_XL[i][j]) < target_val):
-					#target_val = (Norm_DistMat_Branch[i][j] * DistMat_XL[i][j])
-					#min_idx_i = i
-					#min_idx_j = j
-			#if (NJ_RULE_USED == TRADITIONAL_NJ):
-				#if (DistMat_XL[i][j] > 0):
-					#denom = DistMat_XL[i][j]
-				#else:
-					#denom = SMALL_THR
-				#val = (Norm_DistMat_Branch[i][j] / denom)
-				#if (val < target_val):
-					## add - sourya
-					## we check whether we are merging a pair of leaves which do not belong as a sibling 
-					## in the sibling couplet list
-					#if (CheckFalseLeafMerging(clust_species_list, i, j) == False):	# end add - sourya
-						#target_val = val
-						#min_idx_i = i
-						#min_idx_j = j
+			#if (Norm_DistMat_Branch[i][j] < target_val):
+				#target_val = Norm_DistMat_Branch[i][j]
+				#min_idx_i = i
+				#min_idx_j = j
 	
 	#return min_idx_i, min_idx_j
 
@@ -282,7 +175,17 @@ def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, N
 			DistMat_XL_rank = DistMat_XL_List.index(DistMat_XL[i][j])
 			total_rank = Norm_DistMat_Rank + DistMat_XL_rank
 			if (total_rank < min_rank):
-				if 1:	#(CheckFalseLeafMerging(clust_species_list, i, j) == False):	# add - sourya
+				min_idx_i = i
+				min_idx_j = j
+				min_rank = total_rank
+				min_rank_Norm_DistMat_List = Norm_DistMat_Rank
+				min_rank_DistMat_XL_List = DistMat_XL_rank
+				if (DEBUG_LEVEL >= 2):
+					fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
+						' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
+							+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
+			elif (total_rank == min_rank):
+				if (Norm_DistMat_Rank < min_rank_Norm_DistMat_List) and (min_rank_DistMat_XL_List > 0):	# add - sourya
 					min_idx_i = i
 					min_idx_j = j
 					min_rank = total_rank
@@ -292,30 +195,18 @@ def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, N
 						fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
 							' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
 								+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
-			elif (total_rank == min_rank):
-				if 1:	#(CheckFalseLeafMerging(clust_species_list, i, j) == False):	# add - sourya
-					if (Norm_DistMat_Rank < min_rank_Norm_DistMat_List) and (min_rank_DistMat_XL_List > 0):	# add - sourya
-						min_idx_i = i
-						min_idx_j = j
-						min_rank = total_rank
-						min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-						min_rank_DistMat_XL_List = DistMat_XL_rank
-						if (DEBUG_LEVEL >= 2):
-							fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-								' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
-									+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
 
-					elif (min_rank_Norm_DistMat_List > 0) and (min_rank_DistMat_XL_List > 0) \
-						and ((Norm_DistMat_Rank == 0) or (DistMat_XL_rank == 0)):	# add - sourya
-						min_idx_i = i
-						min_idx_j = j
-						min_rank = total_rank
-						min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-						min_rank_DistMat_XL_List = DistMat_XL_rank
-						if (DEBUG_LEVEL >= 2):
-							fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-								' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) + '  min_rank_DistMat_XL_List: ' + \
-									str(min_rank_DistMat_XL_List))
+				elif (min_rank_Norm_DistMat_List > 0) and (min_rank_DistMat_XL_List > 0) \
+					and ((Norm_DistMat_Rank == 0) or (DistMat_XL_rank == 0)):	# add - sourya
+					min_idx_i = i
+					min_idx_j = j
+					min_rank = total_rank
+					min_rank_Norm_DistMat_List = Norm_DistMat_Rank
+					min_rank_DistMat_XL_List = DistMat_XL_rank
+					if (DEBUG_LEVEL >= 2):
+						fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
+							' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) + '  min_rank_DistMat_XL_List: ' + \
+								str(min_rank_DistMat_XL_List))
 
 	if (DEBUG_LEVEL >= 2):
 		fp.close()
@@ -413,8 +304,7 @@ find the true species tree
 it does using agglomerative clustering (NJ principle)
 the distance metric employed for NJ algorithm can vary depending on experimentation 
 """
-def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, \
-	XL_DIST_MAT_ELEM_TYPE, XL_DISTMAT_UPDATE_METHOD):
+def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, XL_DISTMAT_UPDATE_METHOD):
 
 	# initially we have N of clusters for N taxa, where individual clusters are isolated
 	# agglomerating technique introduces a bipartition (speciation) which contains two taxa as its children
@@ -433,20 +323,17 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 
 	# allocate a 2D square matrix of no_of_taxa_clust dimension
 	# for a pair of taxa clusters Cx and Cy, it contains the employed main distance metric for the cluster pairs
-	if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST):
-		Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
-	else:
-		Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)	#int
+	Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
 	# allocate one new square matrix which will contain the NJ based modified distance matrix (used for minimum finding routine)
 	Norm_Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
-	if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
-		# we allocate matrices containing LCA rank among individual couplets
-		XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)	#int
-		# allocate one new square matrix which will contain the normalized mean LCA rank
-		# used in NJ iterations
-		Norm_XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
+	# we allocate matrices containing excess gene measure computed for individual couplets
+	XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
+	
+	# allocate one new square matrix which will contain the normalized excess gene measure
+	# used in NJ iterations
+	Norm_XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
 	"""
 	fill input distance matrices using accumulated branch count or internode count information
@@ -456,8 +343,8 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 	"""
 	this function fills input distance matrices with excess gene information
 	"""
-	if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
-		Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED, XL_DIST_MAT_ELEM_TYPE)
+	if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
+		Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED)
 
 	#--------------------------------------------------------
 	# loop to execute the agglomerative clustering
@@ -469,7 +356,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 			fp.close()
 			PrintMatrixContent(no_of_taxa_clust, clust_species_list, Mean_DistMat_ClustPair_NJ, \
 				'Mean_DistMat_ClustPair_NJ', Output_Text_File)
-			if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+			if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 				PrintMatrixContent(no_of_taxa_clust, clust_species_list, XLVal_DistMat_ClustPair_NJ, \
 					'XLVal_DistMat_ClustPair_NJ', Output_Text_File)
 
@@ -478,7 +365,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		sum_DistMat_Clust = []
 		ComputeSumRowsDistMat(sum_DistMat_Clust, no_of_taxa_clust, \
 			Mean_DistMat_ClustPair_NJ, Output_Text_File, 'sum_DistMat_Clust')
-		if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+		if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 			sum_XLVal_Clust = []
 			ComputeSumRowsDistMat(sum_XLVal_Clust, no_of_taxa_clust, \
 				XLVal_DistMat_ClustPair_NJ, Output_Text_File, 'sum_XLVal_Clust')
@@ -490,41 +377,22 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		if (NJ_RULE_USED == AGGLO_CLUST):
 			FillAggloClustNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
 				Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
-			if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+			if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 				FillAggloClustNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
 					XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
 		else:
 			FillNJNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
 				Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
-			if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
-				# commented - sourya
+			if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 				FillNJNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
 					XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
-				## added - sourya
-				#Fill_XL_NJNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
-					#XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
 
 		if (DEBUG_LEVEL >= 2):
 			PrintMatrixContent(no_of_taxa_clust, clust_species_list, Norm_Mean_DistMat_ClustPair_NJ, \
 				'Norm_Mean_DistMat_ClustPair_NJ', Output_Text_File)
-			if 0:	#(METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+			if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 				PrintMatrixContent(no_of_taxa_clust, clust_species_list, Norm_XLVal_DistMat_ClustPair_NJ, \
 					'Norm_XLVal_DistMat_ClustPair_NJ', Output_Text_File)
-		
-			## add - debug - sourya
-			#fp = open(Output_Text_File, 'a')
-			#fp.write('\n\n printing contents of Dividing of Norm_DistMat by XL Mat')
-			#for i in range(no_of_taxa_clust):
-				#fp.write('\n ' + str(i) + '--' + str(clust_species_list[i]) + '--->>')
-				#if (i > 0):
-					#for j in range(i):
-						#if (XLVal_DistMat_ClustPair_NJ[i][j] > 0):
-							#val = Norm_Mean_DistMat_ClustPair_NJ[i][j] / XLVal_DistMat_ClustPair_NJ[i][j]
-						#else:
-							#val = SMALL_THR
-						#fp.write(' ' + str(val))
-			#fp.close()
-			## end add - debug - sourya
 		
 		"""
 		find the cluster pairs having minimum distance values
@@ -541,42 +409,10 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		the minimum is stored in the element target_val
 		we have used "<" operator to find out the minimum of the elements
 		"""
-		if (METHOD_USED == M_NJ_ST_XL):
-			min_idx_i, min_idx_j = Find_Unique_Min_XL(Norm_Mean_DistMat_ClustPair_NJ, \
-				Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, NJ_RULE_USED)
-		elif (METHOD_USED == NJ_ST_XL):
-			min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
-				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
-			
-			
+		min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+			XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
+		#else:
 			#min_idx_i, min_idx_j = Find_Unique_Min(Norm_Mean_DistMat_ClustPair_NJ, no_of_taxa_clust)
-			
-			#if (DEBUG_LEVEL >= 2):
-				#fp = open(Output_Text_File, 'a')
-				#fp.write('\n According to Find_Unique_Min function ----- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j))
-				#fp.write('\n min_idx_i species list ' + str(clust_species_list[min_idx_i]))
-				#fp.write('\n min_idx_j species list ' + str(clust_species_list[min_idx_j]))
-				#fp.close()
-
-			#min_idx_i, min_idx_j = Find_Unique_Min_NJ_XL(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
-				#XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, NJ_RULE_USED, clust_species_list)
-			
-			#if (DEBUG_LEVEL >= 2):
-				#fp = open(Output_Text_File, 'a')
-				#fp.write('\n According to Find_Unique_Min_NJ_XL (applied finally) function ----- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j))
-				#fp.write('\n min_idx_i species list ' + str(clust_species_list[min_idx_i]))
-				#fp.write('\n min_idx_j species list ' + str(clust_species_list[min_idx_j]))
-				#fp.close()
-			
-			#min_idx_i, min_idx_j = Find_Unique_Min_XL(Norm_Mean_DistMat_ClustPair_NJ, \
-				#Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, NJ_RULE_USED)
-			
-			
-		else:
-			# add - sourya
-			#min_idx_i, min_idx_j = Find_Unique_Min(Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust)
-			# comment - sourya
-			min_idx_i, min_idx_j = Find_Unique_Min(Norm_Mean_DistMat_ClustPair_NJ, no_of_taxa_clust)
 		
 		#---------------------------------------------------------------      
 		# note down the taxa list in these two indices (min_idx_i and min_idx_j) 
@@ -602,31 +438,24 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		#----------------------------------------------------
 		# adjust the Mean_DistMat_ClustPair_NJ by inserting one new row and column corresponding to the new cluster
 		# and then deleting the information of earlier two clusters
-		if (METHOD_USED == M_NJ_ST):
-			# first append one row
-			Mean_DistMat_ClustPair_NJ = numpy.vstack((Mean_DistMat_ClustPair_NJ, \
-				numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))
-			# then append one column
-			Mean_DistMat_ClustPair_NJ = numpy.hstack((Mean_DistMat_ClustPair_NJ, \
-				numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))
-		else:
-			# first append one row
-			Mean_DistMat_ClustPair_NJ = numpy.vstack((Mean_DistMat_ClustPair_NJ, \
-				numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))	#int
-			# then append one column
-			Mean_DistMat_ClustPair_NJ = numpy.hstack((Mean_DistMat_ClustPair_NJ, \
-				numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))	#int
+
+		# first append one row
+		Mean_DistMat_ClustPair_NJ = numpy.vstack((Mean_DistMat_ClustPair_NJ, \
+			numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))
+		# then append one column
+		Mean_DistMat_ClustPair_NJ = numpy.hstack((Mean_DistMat_ClustPair_NJ, \
+			numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))
 		
 		# now reshape the distance matrix
 		Mean_DistMat_ClustPair_NJ = numpy.reshape(Mean_DistMat_ClustPair_NJ, \
 			((no_of_taxa_clust + 1), (no_of_taxa_clust + 1)), order='C')
 		
-		if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
-			# apply these operations on the LCA matrix as well
+		if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
+			# apply these operations on the excess gene count matrix as well
 			XLVal_DistMat_ClustPair_NJ = numpy.vstack((XLVal_DistMat_ClustPair_NJ, \
-				numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))	#int
+				numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))
 			XLVal_DistMat_ClustPair_NJ = numpy.hstack((XLVal_DistMat_ClustPair_NJ, \
-				numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))	#int
+				numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))
 			XLVal_DistMat_ClustPair_NJ = numpy.reshape(XLVal_DistMat_ClustPair_NJ, \
 				((no_of_taxa_clust + 1), (no_of_taxa_clust + 1)), order='C')
 		
@@ -642,7 +471,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 				Mean_DistMat_ClustPair_NJ[min_idx_j][m] - Mean_DistMat_ClustPair_NJ[min_idx_i][min_idx_j]) / 2.0
 			Mean_DistMat_ClustPair_NJ[m][no_of_taxa_clust] = Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m]
 
-			if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+			if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 				"""
 				adjust the XL value for this merged cluster to all other taxa clusters
 				"""
@@ -667,7 +496,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		Mean_DistMat_ClustPair_NJ = numpy.delete(Mean_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=0)	# delete the row
 		Mean_DistMat_ClustPair_NJ = numpy.delete(Mean_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=1)	# delete the column
 
-		if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+		if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 			# update the LCA rank matrix as well
 			XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
 			XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
@@ -679,7 +508,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		Norm_Mean_DistMat_ClustPair_NJ = numpy.delete(Norm_Mean_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
 		Norm_Mean_DistMat_ClustPair_NJ.fill(0)
 		
-		if (METHOD_USED == NJ_ST_XL) or (METHOD_USED == M_NJ_ST_XL):
+		if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
 			# clear norm LCA matrix
 			Norm_XLVal_DistMat_ClustPair_NJ = numpy.delete(Norm_XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
 			Norm_XLVal_DistMat_ClustPair_NJ = numpy.delete(Norm_XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
