@@ -18,6 +18,9 @@ def DefineAccBranchXL(taxa_count, xl_val, curr_node_level, node1, node2):
 	node2_level = node2.level()
 	# end add - sourya
 	
+	"""
+	sourya - check between using normalized internode count or simple integer values 
+	"""
 	#sum_of_branch_count = ((node1_level - curr_node_level) + (node2_level - curr_node_level)) - 1
 	sum_of_branch_count = ((node1_level - curr_node_level) + (node2_level - curr_node_level) - 1) * 1.0 / taxa_count
 
@@ -27,10 +30,12 @@ def DefineAccBranchXL(taxa_count, xl_val, curr_node_level, node1, node2):
 		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key1]._AddLevel(sum_of_branch_count)
 		TaxaPair_Reln_Dict[key1]._AddXLVal(xl_val)
+	
 	elif key2 in TaxaPair_Reln_Dict:
 		TaxaPair_Reln_Dict[key2]._IncrSupportTreeCount()
 		TaxaPair_Reln_Dict[key2]._AddLevel(sum_of_branch_count)
 		TaxaPair_Reln_Dict[key2]._AddXLVal(xl_val)
+		
 	else:
 		TaxaPair_Reln_Dict.setdefault(key1, Reln_TaxaPair())
 		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
@@ -83,6 +88,10 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 	for curr_node in Curr_tree.postorder_internal_node_iter():
 		# compute the rank associated with this node
 		curr_node_level = curr_node.level()
+		
+		"""
+		sourya - check between using normalized excess gene count or simple integer values 
+		"""
 		#xl_val = len(curr_node.leaf_nodes()) - 2
 		xl_val = ((len(curr_node.leaf_nodes()) - 2) * 1.0 ) / Curr_tree_taxa_count
 		
@@ -101,8 +110,9 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 				for j in range(i+1, len(curr_node_child_leaf_nodes)):
 					#if (METHOD_USED == M_NJ_ST):
 						#DefineAccBranch(Curr_tree_taxa_count, curr_node_level, curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
-					if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
-						DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
+					if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
+						DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, \
+							curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
 		
 		# one leaf node (direct descendant) and another leaf node (under one internal node)
 		# will be related by ancestor / descendant relations
@@ -112,7 +122,7 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 					for r in q.leaf_nodes():
 						#if (METHOD_USED == M_NJ_ST):
 							#DefineAccBranch(Curr_tree_taxa_count, curr_node_level, p, r)
-						if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
+						if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
 							DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, p, r)
 				
 		# finally a pair of leaf nodes which are descendant of internal nodes will be related by NO_EDGE relation
@@ -123,7 +133,7 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 						for q in curr_node_child_internal_nodes[j].leaf_nodes():
 							#if (METHOD_USED == M_NJ_ST):
 								#DefineAccBranch(Curr_tree_taxa_count, curr_node_level, p, q)
-							if (METHOD_USED == NJSTXL) or (METHOD_USED == MNJSTXL):
+							if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
 								DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, p, q)
 		
 	return

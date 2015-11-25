@@ -37,3 +37,12 @@ def Read_Input_Treelist(ROOTED_TREE, PRESERVE_UNDERSCORE, INPUT_FILE_FORMAT, INP
 # in terms of newick representation
 def Node_Label(inp_node):
 	return str(inp_node.as_newick_string(suppress_edge_lengths=True))
+
+#----------------------------------------
+#def Complementary_Reln(inp_reln):
+  #if (inp_reln == RELATION_R3) or (inp_reln == RELATION_R4):
+    #return inp_reln
+  #elif (inp_reln == RELATION_R1):
+    #return RELATION_R2
+  #else:
+    #return RELATION_R1
