@@ -46,16 +46,19 @@ plus minimum (median, average) of excess gene count measure
 MedNJSTXL = 2
 
 """
-accumulated internode count with average statistics
-plus minimum (median, average, 50% mode) of excess gene count measure 
+product of average internode count and excess lineage information
+to infer species tree
 """
-ModeNJSTXL = 3
+ProdNJSTXL = 3
 
 
 # variables used to denote whether we use traditional NJ method
 # or use a variant of it, namely the agglomerative clustering
 TRADITIONAL_NJ = 1
 AGGLO_CLUST = 2
+
+# add - sourya
+MODE_PERCENT = 0.25
 
 ##-----------------------------------------------------
 """ 
@@ -68,7 +71,7 @@ class Reln_TaxaPair(object):
 		self.tree_support_count = 0        
 		# this list contains the number of levels (tree internodees) between individual couplets
 		# computed for all the gene trees
-		self.level_info_list = []
+		self.sum_internode_count = 0
 		# this is the extra lineage count list for this couplet
 		self.XL_val_list = []
 		
@@ -118,25 +121,34 @@ class Reln_TaxaPair(object):
 		# remove the zero values 
 		values = numpy.nonzero(counts)[0]
 		# mode value and corresponding frequency
-		mode_val = numpy.argmax(counts)
 		mode_count = numpy.max(counts)
+		
+		#print '*****************'
+		#print 'curr_arr: ', curr_arr
+		#print 'uniqw: ', uniqw
+		#print 'inverse: ', inverse
+		#print 'counts: ', counts
+		#print 'values: ', values
+		#print 'mode_count: ', mode_count
+		
 		# check for the values having frequency at least half of the maximum frequency
 		for v in values:
-			if (counts[v] >= 0.5 * mode_count):
-				candidate_score_sum = candidate_score_sum + (v * counts[v])
+			if (counts[v] >= MODE_PERCENT * mode_count):
+				#candidate_score_sum = candidate_score_sum + (v * counts[v])	# comment - sourya
+				candidate_score_sum = candidate_score_sum + (uniqw[v] * counts[v])	# add - sourya
 				candidate_freq_sum = candidate_freq_sum + counts[v]
 		return (candidate_score_sum * 1.0) / candidate_freq_sum        
 
 	def _AddLevel(self, val):
-		self.level_info_list.append(val)
+		self.sum_internode_count = self.sum_internode_count + val
 
 	def _GetAvgSumLevel(self):
-		return (sum(self.level_info_list) * 1.0) / self.tree_support_count
+		return (self.sum_internode_count * 1.0) / self.tree_support_count
 					
 	#def _GetMultiModeSumLevel(self):
 		#candidate_score_sum = 0
 		#candidate_freq_sum = 0
-		#curr_arr = numpy.array(self.level_info_list)
+		#curr_arr = numpy.array(self.sum_internode_count)
 		## returns the counts of individual elements
 		## array size: max_elem + 1
 		#counts = numpy.bincount(curr_arr)
@@ -156,20 +168,17 @@ class Reln_TaxaPair(object):
 	def _PrintTaxaPairRelnInfo(self, key, out_text_file, METHOD_USED):
 		fp = open(out_text_file, 'a')    
 		fp.write('\n taxa pair key: ' + str(key))
-		#fp.write('\n relations [type/count/priority_reln/score]: ')
-		#for i in range(4):
-			#fp.write('\n [' + str(i) + '/' + str(self.freq_count[i]) + ']')
 		fp.write('\n supporting number of trees: ' + str(self._GetSupportTreeCount()))
 		fp.write('\n *** average sum of internode count : ' + str(self._GetAvgSumLevel()))    
 		fp.write('\n *** average XL val : ' + str(self._GetAvgXLVal()))   
 		fp.write('\n *** median XL val : ' + str(self._MedianXLVal()))   
-		#fp.write('\n *** 50 percent mode XL val : ' + str(self._GetMultiModeXLVal()))   
+		fp.write('\n *** 50 percent mode XL val : ' + str(self._GetMultiModeXLVal_New()))   
 		fp.close()
 			
 		## sourya - debug
 		#if (key[0] == 'HOM' and key[1] == 'TAR') or (key[0] == 'MYO' and key[1] == 'TUR'):
 		#fig1 = plt.figure()
-		#n1, bins1, patches1 = plt.hist(self.level_info_list, 37, normed=0)	#, facecolor='green', alpha=0.75)
+		#n1, bins1, patches1 = plt.hist(self.sum_internode_count, 37, normed=0)	#, facecolor='green', alpha=0.75)
 		#xlabel_str = 'I_G(' + str(key[0]) + ',' + str(key[1]) + ')'
 		#plt.xlabel(xlabel_str)
 		#plt.ylabel('Frequency')

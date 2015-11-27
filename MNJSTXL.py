@@ -71,7 +71,7 @@ def parse_options():
 				default=1, \
 				help="1 - NJSTXL (Average of internode count and average of excess gene count) \
 				2 - MedNJSTXL (Average of internode count with min(average, median) of excess gene count) \
-				3 - ModeNJSTXL (Average of internode count with min(average, median, mode) of excess gene count)")
+				3- ProdNJSTXL (Product of average internode count with median of excess gene count)")
 			
 	#parser.add_option("-n", "--njrule", \
 				#type="int", \
@@ -86,9 +86,19 @@ def parse_options():
 				#action="store", \
 				#dest="dist_mat_type", \
 				#default=1, \
-				#help="1 - Average of XL values \
-				#2 - Minimum of median and average of XL values \
-				#3 - Minimum of median, average, and mode of XL values")     
+				#help="1 - Average of XL \
+				#2 - median of XL \
+				#3 - mode of XL \
+				#4 - min(avg, median) of XL \
+				#5 - min(avg , median, mode) of XL")     
+
+	#parser.add_option("-u", "--update", \
+				#type="int", \
+				#action="store", \
+				#dest="dist_mat_update", \
+				#default=1, \
+				#help="1 - Use divide by 2 \
+				#2 - Max operator")     
 	
 	parser.add_option("-r", "--ROOT", \
 			type="string", \
@@ -113,21 +123,25 @@ def main():
 		INPUT_FILE_FORMAT = 'nexus'
 	INPUT_FILENAME = opts.INP_FILENAME
 	OUTPUT_FILENAME = opts.OUT_FILENAME
+	
 	METHOD_USED = opts.method_type
+	
+	#DIST_MAT_TYPE = opts.dist_mat_type
+	#DIST_MAT_UPDATE = opts.dist_mat_update
 	
 	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
 
-	NJ_RULE_USED = TRADITIONAL_NJ	#opts.NJ_type
-	
 	## add - sourya
 	## we select the NJ option based on the couplet feature employed
 	## if it is average accumulated rank or average branch count then we use traditional NJ method
 	## otherwise we use the weighted Normalized agglomerative clustering
-	#if (METHOD_USED == NJ_ST_XL):
+
+	#if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
 		#NJ_RULE_USED = TRADITIONAL_NJ
-	#else:
+	#elif (METHOD_USED == ProdNJSTXL):
 		#NJ_RULE_USED = AGGLO_CLUST
-	## end add - sourya
+		
+	NJ_RULE_USED = TRADITIONAL_NJ	# add  -sourya
 		
 	if (INPUT_FILENAME == ""):
 		print '******** THERE IS NO INPUT FILE (CONTAINING GENE TREE LIST) SPECIFIED - RETURN **********'
@@ -151,9 +165,8 @@ def main():
 			dir_of_curr_exec = dir_of_inp_file + 'NJSTXL'
 		elif (METHOD_USED == MedNJSTXL):
 			dir_of_curr_exec = dir_of_inp_file + 'MedNJSTXL'
-		elif (METHOD_USED == ModeNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'ModeNJSTXL'
-			
+		elif (METHOD_USED == ProdNJSTXL):
+			dir_of_curr_exec = dir_of_inp_file + 'ProdNJSTXL' 
 		# append the current output directory in the text file
 		Output_Text_File = dir_of_curr_exec + '/' + 'Complete_Desription.txt'
 		# create the directory
@@ -238,7 +251,7 @@ def main():
 		fp.close()
 
 	# now perform the agglomerative clustering technique based on the extra lineages
-	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File)
+	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File)	#, DIST_MAT_TYPE, DIST_MAT_UPDATE)
 
 	fp = open(Output_Text_File, 'a')
 	fp.write('\n --- output species tree (in newick format): ' + Output_Tree.as_newick_string())    

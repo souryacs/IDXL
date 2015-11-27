@@ -110,7 +110,7 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 				for j in range(i+1, len(curr_node_child_leaf_nodes)):
 					#if (METHOD_USED == M_NJ_ST):
 						#DefineAccBranch(Curr_tree_taxa_count, curr_node_level, curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
-					if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
+					if 1:	#(METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
 						DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, \
 							curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
 		
@@ -122,7 +122,7 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 					for r in q.leaf_nodes():
 						#if (METHOD_USED == M_NJ_ST):
 							#DefineAccBranch(Curr_tree_taxa_count, curr_node_level, p, r)
-						if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
+						if 1:	#(METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
 							DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, p, r)
 				
 		# finally a pair of leaf nodes which are descendant of internal nodes will be related by NO_EDGE relation
@@ -133,7 +133,7 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 						for q in curr_node_child_internal_nodes[j].leaf_nodes():
 							#if (METHOD_USED == M_NJ_ST):
 								#DefineAccBranch(Curr_tree_taxa_count, curr_node_level, p, q)
-							if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
+							if 1:	#(METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
 								DefineAccBranchXL(Curr_tree_taxa_count, xl_val, curr_node_level, p, q)
 		
 	return

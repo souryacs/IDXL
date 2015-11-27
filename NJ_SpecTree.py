@@ -40,9 +40,8 @@ def Fill_DistMat_BranchInfo(DistMat, METHOD_USED):
 		spec2 = l[1]
 		spec1_idx = COMPLETE_INPUT_TAXA_LIST.index(spec1)
 		spec2_idx = COMPLETE_INPUT_TAXA_LIST.index(spec2)
-		if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgSumLevel()
-			DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
+		DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgSumLevel()
+		DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
 	
 	return
 
@@ -51,7 +50,7 @@ def Fill_DistMat_BranchInfo(DistMat, METHOD_USED):
 if excess gene count information is used, this 
 function fills the distance matrix using normalized average excess gene count
 """
-def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED):
+def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED):	#, DIST_MAT_TYPE):
 	for l in TaxaPair_Reln_Dict:
 		spec1 = l[0]
 		spec2 = l[1]
@@ -62,9 +61,8 @@ def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED):
 		elif (METHOD_USED == MedNJSTXL):
 			# minimum of average and median of XL values
 			DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
-		elif (METHOD_USED == ModeNJSTXL):
-			DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), \
-				TaxaPair_Reln_Dict[l]._MedianXLVal(), TaxaPair_Reln_Dict[l]._GetMultiModeXLVal_New()) 
+		elif (METHOD_USED == ProdNJSTXL):
+			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._MedianXLVal()
 		
 		# symmetric property of the distance matrix
 		DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
@@ -120,24 +118,52 @@ def FillNJNormalizeMatrix(NormMat, DistMat, sum_list, nclust):
 	return
 
 #---------------------------------------------
-#"""
-#finds the minimum of the distance matrix
-#when only branch count based measure is used
-#"""
-#def Find_Unique_Min(Norm_DistMat_Branch, nclust):
-	#target_val = Norm_DistMat_Branch[0][1]
-	#min_idx_i = 0
-	#min_idx_j = 1
-	#for i in range(nclust - 1):
-		#for j in range(i+1, nclust):
-			#if (i == j):
-				#continue
-			#if (Norm_DistMat_Branch[i][j] < target_val):
-				#target_val = Norm_DistMat_Branch[i][j]
-				#min_idx_i = i
-				#min_idx_j = j
+"""
+finds the minimum of the distance matrix
+when the product of both accumulated coalescence rank and excess gene count based 
+measures are used
+"""
+def Find_Unique_Min_XL(DistMat_CoalRank, Norm_DistMat_CoalRank, DistMat_XL, Norm_DistMat_XL, nclust, clust_species_list, NJ_RULE_USED):
 	
-	#return min_idx_i, min_idx_j
+	target_val = (Norm_DistMat_CoalRank[0][1] * Norm_DistMat_XL[0][1])
+	min_idx_i = 0
+	min_idx_j = 1
+	for i in range(nclust - 1):
+		for j in range(i+1, nclust):
+			if (i == j):
+				continue
+			if (NJ_RULE_USED == AGGLO_CLUST):
+				if ((Norm_DistMat_CoalRank[i][j] * Norm_DistMat_XL[i][j]) < target_val):
+					target_val = (Norm_DistMat_CoalRank[i][j] * Norm_DistMat_XL[i][j])
+					min_idx_i = i
+					min_idx_j = j
+			else:
+				if ((Norm_DistMat_CoalRank[i][j] * Norm_DistMat_XL[i][j]) > target_val):
+					target_val = (Norm_DistMat_CoalRank[i][j] * Norm_DistMat_XL[i][j])
+					min_idx_i = i
+					min_idx_j = j
+				
+	return min_idx_i, min_idx_j
+
+#---------------------------------------------
+"""
+finds the minimum of the distance matrix
+when only branch count based measure is used
+"""
+def Find_Unique_Min(Norm_DistMat_Branch, nclust):
+	target_val = Norm_DistMat_Branch[0][1]
+	min_idx_i = 0
+	min_idx_j = 1
+	for i in range(nclust - 1):
+		for j in range(i+1, nclust):
+			if (i == j):
+				continue
+			if (Norm_DistMat_Branch[i][j] < target_val):
+				target_val = Norm_DistMat_Branch[i][j]
+				min_idx_i = i
+				min_idx_j = j
+	
+	return min_idx_i, min_idx_j
 
 #-------------------------------------------
 """
@@ -303,7 +329,7 @@ find the true species tree
 it does using agglomerative clustering (NJ principle)
 the distance metric employed for NJ algorithm can vary depending on experimentation 
 """
-def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Text_File):
+def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Text_File):	#, DIST_MAT_TYPE, DIST_MAT_UPDATE):
 
 	# initially we have N of clusters for N taxa, where individual clusters are isolated
 	# agglomerating technique introduces a bipartition (speciation) which contains two taxa as its children
@@ -327,13 +353,12 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 	# allocate one new square matrix which will contain the NJ based modified distance matrix (used for minimum finding routine)
 	Norm_Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
-	if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-		# we allocate matrices containing excess gene measure computed for individual couplets
-		XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
-		
-		# allocate one new square matrix which will contain the normalized excess gene measure
-		# used in NJ iterations
-		Norm_XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
+	# we allocate matrices containing excess gene measure computed for individual couplets
+	XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
+	
+	# allocate one new square matrix which will contain the normalized excess gene measure
+	# used in NJ iterations
+	Norm_XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
 	"""
 	fill input distance matrices using accumulated branch count or internode count information
@@ -343,8 +368,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 	"""
 	this function fills input distance matrices with excess gene information
 	"""
-	if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-		Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED)
+	Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED)	#, DIST_MAT_TYPE)
 
 	#--------------------------------------------------------
 	# loop to execute the agglomerative clustering
@@ -356,19 +380,17 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 			fp.close()
 			PrintMatrixContent(no_of_taxa_clust, clust_species_list, Mean_DistMat_ClustPair_NJ, \
 				'Mean_DistMat_ClustPair_NJ', Output_Text_File)
-			if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-				PrintMatrixContent(no_of_taxa_clust, clust_species_list, XLVal_DistMat_ClustPair_NJ, \
-					'XLVal_DistMat_ClustPair_NJ', Output_Text_File)
+			PrintMatrixContent(no_of_taxa_clust, clust_species_list, XLVal_DistMat_ClustPair_NJ, \
+				'XLVal_DistMat_ClustPair_NJ', Output_Text_File)
 
 		# for individual cluster Cx, it contains XL(Cx, :) - sum of extra lineages considering the cluster pair 
 		# (Cx, Cy) for all other clusters Cy
 		sum_DistMat_Clust = []
 		ComputeSumRowsDistMat(sum_DistMat_Clust, no_of_taxa_clust, \
 			Mean_DistMat_ClustPair_NJ, Output_Text_File, 'sum_DistMat_Clust')
-		if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-			sum_XLVal_Clust = []
-			ComputeSumRowsDistMat(sum_XLVal_Clust, no_of_taxa_clust, \
-				XLVal_DistMat_ClustPair_NJ, Output_Text_File, 'sum_XLVal_Clust')
+		sum_XLVal_Clust = []
+		ComputeSumRowsDistMat(sum_XLVal_Clust, no_of_taxa_clust, \
+			XLVal_DistMat_ClustPair_NJ, Output_Text_File, 'sum_XLVal_Clust')
 		
 		"""
 		fill the normalized matrix entries
@@ -377,15 +399,13 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		if (NJ_RULE_USED == AGGLO_CLUST):
 			FillAggloClustNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
 				Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
-			if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-				FillAggloClustNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
-					XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
+			FillAggloClustNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
 		else:
 			FillNJNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
 				Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
-			if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-				FillNJNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
-					XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
+			FillNJNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
 
 		if (DEBUG_LEVEL >= 2):
 			PrintMatrixContent(no_of_taxa_clust, clust_species_list, Norm_Mean_DistMat_ClustPair_NJ, \
@@ -400,7 +420,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		here we have used agglomerative clustering using normalized matrix entries
 		
 		here both Norm_Mean_DistMat_ClustPair_NJ and 
-		Norm_VarianceAccRank_DistMat_ClustPair_NJ /  Norm_XLVal_DistMat_ClustPair_NJ matrices 
+		Norm_XLVal_DistMat_ClustPair_NJ matrices 
 		contain positive but small fraction entries
 		so we have to find the minimum among these elements 
 		(product of these two matrices in position specific way)
@@ -409,10 +429,13 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		the minimum is stored in the element target_val
 		we have used "<" operator to find out the minimum of the elements
 		"""
-		min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
-			XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
-		#else:
-			#min_idx_i, min_idx_j = Find_Unique_Min(Norm_Mean_DistMat_ClustPair_NJ, no_of_taxa_clust)
+		if (METHOD_USED == ProdNJSTXL):
+			min_idx_i, min_idx_j = Find_Unique_Min_XL(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, NJ_RULE_USED)
+		else:
+			min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
+		
 		
 		#---------------------------------------------------------------      
 		# note down the taxa list in these two indices (min_idx_i and min_idx_j) 
@@ -450,14 +473,13 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		Mean_DistMat_ClustPair_NJ = numpy.reshape(Mean_DistMat_ClustPair_NJ, \
 			((no_of_taxa_clust + 1), (no_of_taxa_clust + 1)), order='C')
 		
-		if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-			# apply these operations on the excess gene count matrix as well
-			XLVal_DistMat_ClustPair_NJ = numpy.vstack((XLVal_DistMat_ClustPair_NJ, \
-				numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))
-			XLVal_DistMat_ClustPair_NJ = numpy.hstack((XLVal_DistMat_ClustPair_NJ, \
-				numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))
-			XLVal_DistMat_ClustPair_NJ = numpy.reshape(XLVal_DistMat_ClustPair_NJ, \
-				((no_of_taxa_clust + 1), (no_of_taxa_clust + 1)), order='C')
+		# apply these operations on the excess gene count matrix as well
+		XLVal_DistMat_ClustPair_NJ = numpy.vstack((XLVal_DistMat_ClustPair_NJ, \
+			numpy.zeros((1, no_of_taxa_clust), dtype=numpy.float)))
+		XLVal_DistMat_ClustPair_NJ = numpy.hstack((XLVal_DistMat_ClustPair_NJ, \
+			numpy.zeros((no_of_taxa_clust + 1, 1), dtype=numpy.float)))
+		XLVal_DistMat_ClustPair_NJ = numpy.reshape(XLVal_DistMat_ClustPair_NJ, \
+			((no_of_taxa_clust + 1), (no_of_taxa_clust + 1)), order='C')
 		
 		# add taxa_list as a new element of clust_species_list
 		clust_species_list.append(taxa_list)          
@@ -471,14 +493,10 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 				Mean_DistMat_ClustPair_NJ[min_idx_j][m] - Mean_DistMat_ClustPair_NJ[min_idx_i][min_idx_j]) / 2.0
 			Mean_DistMat_ClustPair_NJ[m][no_of_taxa_clust] = Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m]
 
-			if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL):
-				#XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = \
-					#((XLVal_DistMat_ClustPair_NJ[min_idx_i][m] * len(clust_species_list[min_idx_i])) + \
-						#(XLVal_DistMat_ClustPair_NJ[min_idx_j][m] * len(clust_species_list[min_idx_j]))) / (len(clust_species_list[min_idx_i]) + len(clust_species_list[min_idx_j]))
+			if 1:	#(DIST_MAT_UPDATE == 1):
 				XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = \
 					(XLVal_DistMat_ClustPair_NJ[min_idx_i][m] + XLVal_DistMat_ClustPair_NJ[min_idx_j][m]) / 2.0
-			
-			elif (METHOD_USED == ModeNJSTXL):
+			else:
 				XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = max(XLVal_DistMat_ClustPair_NJ[min_idx_i][m], \
 					XLVal_DistMat_ClustPair_NJ[min_idx_j][m])
 				#XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = max(XLVal_DistMat_ClustPair_NJ[min_idx_i][m], \
@@ -493,23 +511,21 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 		Mean_DistMat_ClustPair_NJ = numpy.delete(Mean_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=0)	# delete the row
 		Mean_DistMat_ClustPair_NJ = numpy.delete(Mean_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=1)	# delete the column
 
-		if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-			# update the LCA rank matrix as well
-			XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
-			XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
-			XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=0)	# delete the row
-			XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=1)	# delete the column
+		# update the LCA rank matrix as well
+		XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
+		XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
+		XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=0)	# delete the row
+		XLVal_DistMat_ClustPair_NJ = numpy.delete(XLVal_DistMat_ClustPair_NJ, (min_idx_j - 1), axis=1)	# delete the column
 
 		# clear Norm_Mean_DistMat_ClustPair_NJ
 		Norm_Mean_DistMat_ClustPair_NJ = numpy.delete(Norm_Mean_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
 		Norm_Mean_DistMat_ClustPair_NJ = numpy.delete(Norm_Mean_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
 		Norm_Mean_DistMat_ClustPair_NJ.fill(0)
 		
-		if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-			# clear norm LCA matrix
-			Norm_XLVal_DistMat_ClustPair_NJ = numpy.delete(Norm_XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
-			Norm_XLVal_DistMat_ClustPair_NJ = numpy.delete(Norm_XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
-			Norm_XLVal_DistMat_ClustPair_NJ.fill(0)    
+		# clear norm LCA matrix
+		Norm_XLVal_DistMat_ClustPair_NJ = numpy.delete(Norm_XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=0)	# delete the row
+		Norm_XLVal_DistMat_ClustPair_NJ = numpy.delete(Norm_XLVal_DistMat_ClustPair_NJ, (min_idx_i), axis=1)	# delete the column
+		Norm_XLVal_DistMat_ClustPair_NJ.fill(0)    
 		
 		# remove individual clusters' taxa information from the clust_species_list
 		clust_species_list.pop(min_idx_i)
