@@ -1,22 +1,21 @@
 *********************************
-MNJSTXL
+MNJSTXL & PNJSTXL
 *********************************
 
 ******************************
-Species tree estimation using mode based accumulated internode count and extra gene leaves information
+Species tree estimation using internode count and excess gene leaves information
 ******************************
 
-MNJSTXL is a python based tool for computing species tree from a set of incongruent gene trees 
-with Incomplete Lineage Sorting (ILS). One of the following measures between individual couplets are compurted 
+MNJSTXL & PNJSTXL is a python based tool for computing species tree from a set of incongruent gene trees 
+with Incomplete Lineage Sorting (ILS). Following measures between individual couplets are compurted 
 for species tree estimation.
 
-A) Accumulated internode count between individual couplets 
+A) Internode count between individual couplets (proposed in NJst approach (Liu et. al. 2011))
 
-B) Accumulated extra gene leaves count between individual couplets.
+B) Excess gene leaves count between individual couplets, computed for all the input gene trees.
 
-These measures are averaged with respect to all input gene trees, and subsequently used to form the distance matrix 
-D. It is then applied to the NJ method for species tree construction.
-
+These measures are used to form respective distance matrices, which will be subsequently used for NJ 
+based species tree construction.
 
 Description
 -----------------------
@@ -24,8 +23,8 @@ Description
 Input
 -----------
 
-A collection of gene trees with overlapping taxa set (sampled genes), having topological incongruence 
-due to Incomplete Lineage Sorting (ILS). Gene trees may or may not be weighted; current species tree estimation 
+A collection of gene trees (formed by sampling individual genes from a group of taxa) with overlapping taxa set, having topological incongruence 
+due to Incomplete Lineage Sorting (ILS). Gene trees may or may not be weighted; our species tree estimation method 
 does not consider the branch lengths of the tree.
 
 Input gene trees can be either in NEWICK format or in NEXUS format. 
@@ -42,27 +41,23 @@ is generated in the NEWICK format.
 Methods implemented
 ------------------------------
 
-We have implemented following 3 kinds of methods for species tree estimation, of which 2 are 
-novel contributions, and one is a custom implementation of a reference approach.
+We have implemented following 2 kinds of methods for species tree estimation methods.
 
-A) NJst: A method proposed by Liu. et. al. (2011) which defines accumulated internode rank between individual couplets, 
-and computes them using individual gene trees. The average values of these accumulated internode count for individual 
-couplets are then used in NJ (Neighbor Joining), to produce the final species tree. The method is named as NJst.
+A) MNJstXL (or MedNJstXL): Internode count and excess gene leaf count between individual couplets are 
+computed with respect to input gene trees. Two separate distance matrices are constructed next. One contains 
+the couplet based average internode count measure. Another matrix contains the minimum of 
+median and average of excess gene leaf count, computed for all the gene trees. These two distance matrices 
+are used separately based on the principle of lowest agregated rank, to construct the species tree using NJ.
+This method is termed as MedNJstXL or MNJstXL.
 
-B) MNJst: Here, instead of simple averaging of earlier internode count measure (between individual couplets), 
-we propose to use a mode based averaging of the internode count measure. Such modified average of the internode counts are 
-used to generate the species tree, using distance matrix based phylogeny construction.
-
-C) MNJstXL: Here, mode based average internode count for individual couplets are augmented with couplet based average 
-extra lineage count, computed with respect to the input gene trees. Combination of both features generates the distance matrix 
-D, for subsequent NJ based species tree generation.
-
+B) PNJstXL (or ProdNJstXL): Here, we use the product of internode count and excess gene leaf count to construct a single distance matrix, 
+for NJ based species tree construction.
 
 *********************************
 Dependencies
 *********************************
 
-MNJstXL is developed in Linux Systems (Ubuntu 14.04), using Python 2.7. It is tested and meant for systems 
+These methods is developed in Linux Systems (Ubuntu 14.04), using Python 2.7. It is tested and meant for systems 
 having linux OS (Fedora / Ubuntu).
 
 User needs to install following before using this package:
@@ -116,16 +111,18 @@ Details of the options are mentioned below:
 
 -m METHOD_TYPE, --method=METHOD_TYPE
 
-                1 - NJ_st (Liu et. al. 2011)
+                1 - MNJstXL  (Default Method)  
 
-                2 - MNJst (method using mode based accumulated internode count)
+                2 - PNJstXL 
 
-                3 - MNJstXL (method using mode based accumulated internode count 
-                and extra lineage information) (Default Method)                   
+-r TAXON_NAME, --ROOT=TAXON_NAME
+
+		User can specify a taxon name to root the output species tree with that specified taxon.
+
 
 Example of a command (followed for the results published in the manuscript)
 
-./MNJSTXL -I source_tree_input.txt -p1 -m3
+./MNJSTXL -I source_tree_input.txt -p1 -m2
 
 command descriptions:
 
@@ -133,9 +130,11 @@ command descriptions:
 
 2) source_tree_input.txt : contains the input collection of gene trees
 
-3) -p option is for specifying the input tree format input file contains the trees in NEWICK format, as specified by the option (-p1) (1 stands for newick)
+3) -p option is for specifying the input tree format input file contains the trees in NEWICK format, 
+as specified by the option (-p1) (1 stands for newick)
 
-4) -m option is used to specify the species tree construction method. Here 1 is used to denote that MNJstXL is employed. The value can vary from 1 to 3.
+4) -m option is used to specify the species tree construction method. 
+Here 2 is used to denote that PNJstXL is employed. The value can vary between 1 and 2.
 
 In addition, the package contains another option: -O 'output_file_name'
 
@@ -143,10 +142,10 @@ Here, user can specify the output file name containing the derived species tree 
 
 If no such option is provided, our method performs the following operations:
 
-If m = 1, a directory “NJ_ST” is created within the same directory containing the input treelist file. 
+If m = 1, a directory “MedNJSTXL” is created within the same directory containing the input treelist file. 
 Within this new created directory, one file 'outtree_newick.tre' is created, which contains the derived species tree. 
 Another text file named 'Complete_Desription.txt' is created, which contains execution and timing information 
-for the method. For m = 2, and m = 3, directory “M_NJ_ST” or 'M_NJ_ST_XL', respectively, is created within 
+for the method. For m = 2,  a directory 'ProdNJSTXL' is created within 
 the same directory containing the input treelist file. Above mentioned files within the new directory are 
 generated as per the execution.
 
