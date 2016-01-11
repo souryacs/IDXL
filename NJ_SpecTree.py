@@ -50,19 +50,45 @@ def Fill_DistMat_BranchInfo(DistMat, METHOD_USED):
 if excess gene count information is used, this 
 function fills the distance matrix using normalized average excess gene count
 """
-def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED):	#, DIST_MAT_TYPE):
+def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED, DIST_MAT_TYPE):
 	for l in TaxaPair_Reln_Dict:
 		spec1 = l[0]
 		spec2 = l[1]
 		spec1_idx = COMPLETE_INPUT_TAXA_LIST.index(spec1)
 		spec2_idx = COMPLETE_INPUT_TAXA_LIST.index(spec2)
+		
+		# code used earlier  - commented - sourya
 		if (METHOD_USED == NJSTXL):
 			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
 		elif (METHOD_USED == MedNJSTXL):
 			# minimum of average and median of XL values
-			DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
+			DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), \
+				TaxaPair_Reln_Dict[l]._MedianXLVal())
 		elif (METHOD_USED == ProdNJSTXL):
-			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._MedianXLVal()
+			# minimum of average and median of XL values
+			DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), \
+				TaxaPair_Reln_Dict[l]._MedianXLVal())
+			#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._MedianXLVal()
+		# end comment - sourya
+
+		## add - sourya
+		#if (DIST_MAT_TYPE == 1):
+			#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
+		#elif (DIST_MAT_TYPE == 2):
+			#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._MedianXLVal()
+		#elif (DIST_MAT_TYPE == 3):
+			#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()
+		#elif (DIST_MAT_TYPE == 4):
+			## minimum of average and median of XL values
+			#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
+		#elif (DIST_MAT_TYPE == 5):
+			## minimum of average, median, and mode of XL values
+			#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), \
+				#TaxaPair_Reln_Dict[l]._MedianXLVal(), TaxaPair_Reln_Dict[l]._GetMultiModeXLVal())
+		#elif (DIST_MAT_TYPE == 6):
+			## minimum of median, and mode of XL values
+			#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._MedianXLVal(), TaxaPair_Reln_Dict[l]._GetMultiModeXLVal())
+		## end add - sourya
 		
 		# symmetric property of the distance matrix
 		DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
@@ -97,7 +123,8 @@ def FillAggloClustNormalizeMatrix(NormMat, DistMat, sum_list, nclust):
 			# comment - sourya
 			#NormMat[i][j] = ObtainNormalizedVal(DistMat[i][j], sum_list[i], sum_list[j])
 			# add - sourya
-			NormMat[i][j] = ObtainNormalizedVal(DistMat[i][j], (sum_list[i] - DistMat[i][j]), (sum_list[j] - DistMat[i][j]))
+			NormMat[i][j] = ObtainNormalizedVal(DistMat[i][j], (sum_list[i] - DistMat[i][j]), \
+				(sum_list[j] - DistMat[i][j]))
 			# end add - sourya
 			NormMat[j][i] = NormMat[i][j]
 
@@ -123,7 +150,8 @@ finds the minimum of the distance matrix
 when the product of both accumulated coalescence rank and excess gene count based 
 measures are used
 """
-def Find_Unique_Min_XL(DistMat_CoalRank, Norm_DistMat_CoalRank, DistMat_XL, Norm_DistMat_XL, nclust, clust_species_list, NJ_RULE_USED):
+def Find_Unique_Min_XL(DistMat_CoalRank, Norm_DistMat_CoalRank, DistMat_XL, \
+	Norm_DistMat_XL, nclust, clust_species_list, NJ_RULE_USED):
 	
 	target_val = (Norm_DistMat_CoalRank[0][1] * Norm_DistMat_XL[0][1])
 	min_idx_i = 0
@@ -145,31 +173,36 @@ def Find_Unique_Min_XL(DistMat_CoalRank, Norm_DistMat_CoalRank, DistMat_XL, Norm
 				
 	return min_idx_i, min_idx_j
 
-#---------------------------------------------
-"""
-finds the minimum of the distance matrix
-when only branch count based measure is used
-"""
-def Find_Unique_Min(Norm_DistMat_Branch, nclust):
-	target_val = Norm_DistMat_Branch[0][1]
-	min_idx_i = 0
-	min_idx_j = 1
-	for i in range(nclust - 1):
-		for j in range(i+1, nclust):
-			if (i == j):
-				continue
-			if (Norm_DistMat_Branch[i][j] < target_val):
-				target_val = Norm_DistMat_Branch[i][j]
-				min_idx_i = i
-				min_idx_j = j
+##---------------------------------------------
+# sourya - keep this function but as a commented entry
+##----------------------------------------------
+#"""
+#finds the minimum of the distance matrix
+#when only branch count based measure is used
+#"""
+#def Find_Unique_Min(Norm_DistMat_Branch, nclust):
+	#target_val = Norm_DistMat_Branch[0][1]
+	#min_idx_i = 0
+	#min_idx_j = 1
+	#for i in range(nclust - 1):
+		#for j in range(i+1, nclust):
+			#if (i == j):
+				#continue
+			#if (Norm_DistMat_Branch[i][j] < target_val):
+				#target_val = Norm_DistMat_Branch[i][j]
+				#min_idx_i = i
+				#min_idx_j = j
 	
-	return min_idx_i, min_idx_j
+	#return min_idx_i, min_idx_j
 
 #-------------------------------------------
 """
-this function is a new version
+this function is a new version, to select the couplet with minimum aggregated rank
+ranks are computed for both XL and branch count
+minimum sum of ranks are considered
 """
-def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, Norm_DistMat_XL, nclust, clust_species_list, outfile):
+def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, \
+	Norm_DistMat_XL, nclust, clust_species_list, outfile, RankMergeMethod):
 	
 	if (DEBUG_LEVEL >= 2):
 		fp = open(outfile, 'a')
@@ -181,36 +214,42 @@ def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, N
 			if (i == j):
 				continue
 			Norm_DistMat_List.append(Norm_DistMat_Branch[i][j])
-			DistMat_XL_List.append(DistMat_XL[i][j])
+			DistMat_XL_List.append((DistMat_XL[i][j]))
 	
 	Norm_DistMat_List.sort()
 	DistMat_XL_List.sort()
 	
-	min_idx_i = 0
-	min_idx_j = 1
-	min_rank_Norm_DistMat_List = Norm_DistMat_List.index(Norm_DistMat_Branch[0][1])
-	min_rank_DistMat_XL_List = DistMat_XL_List.index(DistMat_XL[0][1])
-	min_rank = min_rank_Norm_DistMat_List + min_rank_DistMat_XL_List
-	
+	if (RankMergeMethod == SIMPLE_SUM_RANK):
+		min_idx_i = 0
+		min_idx_j = 1
+		min_rank_Norm_DistMat_List = Norm_DistMat_List.index(Norm_DistMat_Branch[0][1])
+		min_rank_DistMat_XL_List = DistMat_XL_List.index(DistMat_XL[0][1])
+		min_rank = min_rank_Norm_DistMat_List + min_rank_DistMat_XL_List
+	elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
+		max_idx_i = 0
+		max_idx_j = 1
+		# we allow rank values from 1, instead of 0
+		max_rank_Norm_DistMat_List = Norm_DistMat_List.index(Norm_DistMat_Branch[0][1]) + 1
+		max_rank_DistMat_XL_List = DistMat_XL_List.index(DistMat_XL[0][1]) + 1
+		# compute the mean reciprocal rank value
+		max_rank = 0.5 * ((1.0 / max_rank_Norm_DistMat_List) + (1.0 / max_rank_DistMat_XL_List))
+		
 	for i in range(nclust - 1):
 		for j in range(i+1, nclust):
 			if (i == j):
 				continue
-			Norm_DistMat_Rank = Norm_DistMat_List.index(Norm_DistMat_Branch[i][j])
-			DistMat_XL_rank = DistMat_XL_List.index(DistMat_XL[i][j])
-			total_rank = Norm_DistMat_Rank + DistMat_XL_rank
-			if (total_rank < min_rank):
-				min_idx_i = i
-				min_idx_j = j
-				min_rank = total_rank
-				min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-				min_rank_DistMat_XL_List = DistMat_XL_rank
-				if (DEBUG_LEVEL >= 2):
-					fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-						' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
-							+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
-			elif (total_rank == min_rank):
-				if (Norm_DistMat_Rank < min_rank_Norm_DistMat_List) and (min_rank_DistMat_XL_List > 0):	# add - sourya
+			if (RankMergeMethod == SIMPLE_SUM_RANK):
+				Norm_DistMat_Rank = Norm_DistMat_List.index(Norm_DistMat_Branch[i][j])
+				DistMat_XL_rank = DistMat_XL_List.index(DistMat_XL[i][j])
+				total_rank = Norm_DistMat_Rank + DistMat_XL_rank
+			elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
+				# we allow rank values from 1, instead of 0
+				Norm_DistMat_Rank = Norm_DistMat_List.index(Norm_DistMat_Branch[i][j]) + 1
+				DistMat_XL_rank = DistMat_XL_List.index(DistMat_XL[i][j]) + 1
+				total_rank = 0.5 * ((1.0 / Norm_DistMat_Rank) + (1.0 / DistMat_XL_rank))
+				
+			if (RankMergeMethod == SIMPLE_SUM_RANK):
+				if (total_rank < min_rank):
 					min_idx_i = i
 					min_idx_j = j
 					min_rank = total_rank
@@ -220,23 +259,50 @@ def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, N
 						fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
 							' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
 								+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
+				elif (total_rank == min_rank):
+					if (Norm_DistMat_Rank < min_rank_Norm_DistMat_List) and (min_rank_DistMat_XL_List > 0):	# add - sourya
+						min_idx_i = i
+						min_idx_j = j
+						min_rank = total_rank
+						min_rank_Norm_DistMat_List = Norm_DistMat_Rank
+						min_rank_DistMat_XL_List = DistMat_XL_rank
+						if (DEBUG_LEVEL >= 2):
+							fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
+								' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
+									+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
 
-				elif (min_rank_Norm_DistMat_List > 0) and (min_rank_DistMat_XL_List > 0) \
-					and ((Norm_DistMat_Rank == 0) or (DistMat_XL_rank == 0)):	# add - sourya
-					min_idx_i = i
-					min_idx_j = j
-					min_rank = total_rank
-					min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-					min_rank_DistMat_XL_List = DistMat_XL_rank
+					elif (min_rank_Norm_DistMat_List > 0) and (min_rank_DistMat_XL_List > 0) \
+						and ((Norm_DistMat_Rank == 0) or (DistMat_XL_rank == 0)):	# add - sourya
+						min_idx_i = i
+						min_idx_j = j
+						min_rank = total_rank
+						min_rank_Norm_DistMat_List = Norm_DistMat_Rank
+						min_rank_DistMat_XL_List = DistMat_XL_rank
+						if (DEBUG_LEVEL >= 2):
+							fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
+								' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) + '  min_rank_DistMat_XL_List: ' + \
+									str(min_rank_DistMat_XL_List))
+							
+			elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
+				if (total_rank > max_rank):
+					max_idx_i = i
+					max_idx_j = j
+					max_rank = total_rank
+					max_rank_Norm_DistMat_List = Norm_DistMat_Rank
+					max_rank_DistMat_XL_List = DistMat_XL_rank
 					if (DEBUG_LEVEL >= 2):
-						fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-							' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) + '  min_rank_DistMat_XL_List: ' + \
-								str(min_rank_DistMat_XL_List))
+						fp.write('\n Within iteration --- max_idx_i ' + str(max_idx_i) \
+							+ ' max_idx_j : ' + str(max_idx_j) + \
+							' max_rank_Norm_DistMat_List: ' + str(max_rank_Norm_DistMat_List) \
+								+ '  max_rank_DistMat_XL_List: ' + str(max_rank_DistMat_XL_List))
 
 	if (DEBUG_LEVEL >= 2):
 		fp.close()
 	
-	return min_idx_i, min_idx_j
+	if (RankMergeMethod == SIMPLE_SUM_RANK):
+		return min_idx_i, min_idx_j
+	elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
+		return max_idx_i, max_idx_j
 
 #-------------------------------------------
 """
@@ -258,7 +324,8 @@ this function has following parameters:
 It creates one new internal node as a child of all_taxa_mrca_node
 and places above mentioned subtrees as its children
 """
-def MergeSubtrees(Curr_tree, first_cluster_mrca_node, second_cluster_mrca_node, all_taxa_mrca_node, taxa_list, Output_Text_File):
+def MergeSubtrees(Curr_tree, first_cluster_mrca_node, second_cluster_mrca_node, \
+	all_taxa_mrca_node, taxa_list, Output_Text_File):
 	if (DEBUG_LEVEL >= 2):
 		fp = open(Output_Text_File, 'a')
 		fp.write('\n label of first_cluster_mrca_node: ' + str(Node_Label(first_cluster_mrca_node)))      
@@ -289,7 +356,8 @@ def MergeSubtrees(Curr_tree, first_cluster_mrca_node, second_cluster_mrca_node, 
 	if (DEBUG_LEVEL >= 2):
 		fp = open(Output_Text_File, 'a')
 		fp.write('\n label of newnode: ' + str(Node_Label(newnode)))
-		fp.write('\n label of all taxa mrca node (recomputed): ' + str(Node_Label(Curr_tree.mrca(taxon_labels=taxa_list))))  
+		fp.write('\n label of all taxa mrca node (recomputed): ' + \
+			str(Node_Label(Curr_tree.mrca(taxon_labels=taxa_list))))  
 		fp.close()
 
 	return Curr_tree
@@ -329,7 +397,8 @@ find the true species tree
 it does using agglomerative clustering (NJ principle)
 the distance metric employed for NJ algorithm can vary depending on experimentation 
 """
-def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Text_File):	#, DIST_MAT_TYPE, DIST_MAT_UPDATE):
+def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
+	Output_Text_File, RankMergeMethod, DIST_MAT_TYPE):	#, DIST_MAT_UPDATE):
 
 	# initially we have N of clusters for N taxa, where individual clusters are isolated
 	# agglomerating technique introduces a bipartition (speciation) which contains two taxa as its children
@@ -368,7 +437,7 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 	"""
 	this function fills input distance matrices with excess gene information
 	"""
-	Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED)	#, DIST_MAT_TYPE)
+	Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED, DIST_MAT_TYPE)
 
 	#--------------------------------------------------------
 	# loop to execute the agglomerative clustering
@@ -433,8 +502,10 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, Output_Te
 			min_idx_i, min_idx_j = Find_Unique_Min_XL(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
 				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, NJ_RULE_USED)
 		else:
-			min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
-				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
+			min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, \
+				Norm_Mean_DistMat_ClustPair_NJ, XLVal_DistMat_ClustPair_NJ, \
+					Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, \
+						Output_Text_File, RankMergeMethod)
 		
 		
 		#---------------------------------------------------------------      

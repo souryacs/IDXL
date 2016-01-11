@@ -19,6 +19,11 @@ V1.6 - 19.06.2015 - added LCA rank and accumulated coalescence rank based featur
 V1.7 - 20.06.2015 - added mode of LCA rank and corresponding species tree estimation technique
 V1.8 - 17.07.2015 - added mode of LCA rank and mode of accumulated branch count as a new species tree estimation technique
 V2.0 - 18.07.2015 - separated the branch count based computation and corresponding methods
+V3.0 - 30.11.2015 - completely modified the code to incorporate rank based selection of couplets, 
+										using the internode count and excess gene leaf count based matrices
+V3.1 - 05.12.2015 - Added product of internode count and excess gene leaf count measures to 
+										generate species tree using NJ based method.
+V3.2 - 22.12.2015 - Introduced concept of sophisticated rank merging such as mean reciprocal rank
 ''' 
 
 ## Copyright 2015 Sourya Bhattacharyya and Jayanta Mukherjee.
@@ -69,9 +74,8 @@ def parse_options():
 				action="store", \
 				dest="method_type", \
 				default=1, \
-				help="1 - NJSTXL (Average of internode count and average of excess gene count) \
-				2 - MedNJSTXL (Average of internode count with min(average, median) of excess gene count) \
-				3- ProdNJSTXL (Product of average internode count with median of excess gene count)")
+				help="1 - MedNJSTXL (Average of internode count with min(average, median) of excess gene count) \
+				2 - ProdNJSTXL (Product of average internode count with median of excess gene count)")
 			
 	#parser.add_option("-n", "--njrule", \
 				#type="int", \
@@ -90,7 +94,8 @@ def parse_options():
 				#2 - median of XL \
 				#3 - mode of XL \
 				#4 - min(avg, median) of XL \
-				#5 - min(avg , median, mode) of XL")     
+				#5 - min(avg , median, mode) of XL \
+				#6 - min(median, mode) of XL")     
 
 	#parser.add_option("-u", "--update", \
 				#type="int", \
@@ -106,6 +111,14 @@ def parse_options():
 			dest="outgroup_taxon_name", \
 			default="", \
 			help="name of the taxon by which the tree can be rooted (outgroup based rooting)")
+			
+	#parser.add_option("-a", "--aggrank", \
+				#type="int", \
+				#action="store", \
+				#dest="Rank_Aggregate_Method_type", \
+				#default=1, \
+				#help="1 - lower sum of positional ranks (default) \
+				#2 - Mean reciprocal rank")     
 			
 	opts, args = parser.parse_args()
 	return opts, args
@@ -126,10 +139,12 @@ def main():
 	
 	METHOD_USED = opts.method_type
 	
-	#DIST_MAT_TYPE = opts.dist_mat_type
+	DIST_MAT_TYPE = 1	#opts.dist_mat_type
 	#DIST_MAT_UPDATE = opts.dist_mat_update
 	
 	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
+	
+	RANK_AGGREGATE_METHOD_TYPE = SIMPLE_SUM_RANK	# opts.Rank_Aggregate_Method_type
 
 	## add - sourya
 	## we select the NJ option based on the couplet feature employed
@@ -166,7 +181,7 @@ def main():
 		elif (METHOD_USED == MedNJSTXL):
 			dir_of_curr_exec = dir_of_inp_file + 'MedNJSTXL'
 		elif (METHOD_USED == ProdNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'ProdNJSTXL' 
+			dir_of_curr_exec = dir_of_inp_file + 'ProdNJSTXL'
 		# append the current output directory in the text file
 		Output_Text_File = dir_of_curr_exec + '/' + 'Complete_Desription.txt'
 		# create the directory
@@ -251,7 +266,8 @@ def main():
 		fp.close()
 
 	# now perform the agglomerative clustering technique based on the extra lineages
-	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File)	#, DIST_MAT_TYPE, DIST_MAT_UPDATE)
+	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, \
+		RANK_AGGREGATE_METHOD_TYPE, DIST_MAT_TYPE)	#, DIST_MAT_UPDATE)
 
 	fp = open(Output_Text_File, 'a')
 	fp.write('\n --- output species tree (in newick format): ' + Output_Tree.as_newick_string())    
