@@ -24,9 +24,10 @@ V3.0 - 30.11.2015 - completely modified the code to incorporate rank based selec
 V3.1 - 05.12.2015 - Added product of internode count and excess gene leaf count measures to 
 										generate species tree using NJ based method.
 V3.2 - 22.12.2015 - Introduced concept of sophisticated rank merging such as mean reciprocal rank
+V4.0 - 27.06.2015 - Introduced mode based filtered XL value, to be used in conjuction with the internode count measure
 ''' 
 
-## Copyright 2015 Sourya Bhattacharyya and Jayanta Mukherjee.
+## Copyright 2015, 2016 Sourya Bhattacharyya and Jayanta Mukherjee.
 ## All rights reserved.
 ##
 ## See "LICENSE.txt" for terms and conditions of usage.
@@ -73,7 +74,7 @@ def parse_options():
 				type="int", \
 				action="store", \
 				dest="method_type", \
-				default=1, \
+				default=2, \
 				help="1 - MedNJSTXL (Average of internode count with min(average, median) of excess gene count) \
 				2 - ProdNJSTXL (Product of average internode count with median of excess gene count)")
 			
@@ -91,11 +92,11 @@ def parse_options():
 				#dest="dist_mat_type", \
 				#default=1, \
 				#help="1 - Average of XL \
-				#2 - median of XL \
-				#3 - mode of XL \
-				#4 - min(avg, median) of XL \
-				#5 - min(avg , median, mode) of XL \
-				#6 - min(median, mode) of XL")     
+				#2 - mode of XL \
+				#3 - min(avg, median) of XL \
+				#4 - min(avg, mode) of XL \
+				#5 - Avg(avg , mode) of XL \
+				#6 - Avg(avg , median, mode) of XL")     
 
 	#parser.add_option("-u", "--update", \
 				#type="int", \
@@ -123,8 +124,10 @@ def parse_options():
 	opts, args = parser.parse_args()
 	return opts, args
   
-##-----------------------------------------------------
-# main function
+#-----------------------------------------------------
+"""
+main function
+"""
 def main():  
 	opts, args = parse_options()
 
@@ -139,24 +142,14 @@ def main():
 	
 	METHOD_USED = opts.method_type
 	
-	DIST_MAT_TYPE = 1	#opts.dist_mat_type
+	DIST_MAT_TYPE = 5	# opts.dist_mat_type
 	#DIST_MAT_UPDATE = opts.dist_mat_update
 	
 	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
 	
 	RANK_AGGREGATE_METHOD_TYPE = SIMPLE_SUM_RANK	# opts.Rank_Aggregate_Method_type
 
-	## add - sourya
-	## we select the NJ option based on the couplet feature employed
-	## if it is average accumulated rank or average branch count then we use traditional NJ method
-	## otherwise we use the weighted Normalized agglomerative clustering
-
-	#if (METHOD_USED == NJSTXL) or (METHOD_USED == MedNJSTXL) or (METHOD_USED == ModeNJSTXL):
-		#NJ_RULE_USED = TRADITIONAL_NJ
-	#elif (METHOD_USED == ProdNJSTXL):
-		#NJ_RULE_USED = AGGLO_CLUST
-		
-	NJ_RULE_USED = TRADITIONAL_NJ	# add  -sourya
+	NJ_RULE_USED = TRADITIONAL_NJ
 		
 	if (INPUT_FILENAME == ""):
 		print '******** THERE IS NO INPUT FILE (CONTAINING GENE TREE LIST) SPECIFIED - RETURN **********'
@@ -164,46 +157,54 @@ def main():
 	else:
 		print 'input filename: ', INPUT_FILENAME
 
-	# according to the location of input filename
-	# adjust the locations of the output files as well
+	"""
+	according to the location of input filename
+	adjust the locations of the output files as well
+	"""
 	k = INPUT_FILENAME.rfind("/")
 	if (k == -1):
 		dir_of_inp_file = './'
 	else:
 		dir_of_inp_file = INPUT_FILENAME[:(k+1)]
 	inp_filename = INPUT_FILENAME[(k+1):]
-	print 'dir_of_inp_file: ', dir_of_inp_file  
+	#print 'dir_of_inp_file: ', dir_of_inp_file  
 
 	if (OUTPUT_FILENAME == ""):
-		# derive the output directory which will contain different output text results
+		"""
+		derive the output directory which will contain different output text results
+		"""
 		if (METHOD_USED == NJSTXL):
 			dir_of_curr_exec = dir_of_inp_file + 'NJSTXL'
 		elif (METHOD_USED == MedNJSTXL):
 			dir_of_curr_exec = dir_of_inp_file + 'MedNJSTXL'
 		elif (METHOD_USED == ProdNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'ProdNJSTXL'
-		# append the current output directory in the text file
+			dir_of_curr_exec = dir_of_inp_file + 'ProdNJSTXL'	#_D' + str(DIST_MAT_TYPE) + '_Mode' + str(MODE_PERCENT)
+		"""
+		append the current output directory in the text file
+		"""
 		Output_Text_File = dir_of_curr_exec + '/' + 'Complete_Desription.txt'
-		# create the directory
-		if (os.path.isdir(dir_of_curr_exec) == False):
-			mkdr_cmd = 'mkdir ' + dir_of_curr_exec
-			os.system(mkdr_cmd)               
-		print 'Output_Text_File: ', Output_Text_File      
 	else:
-		# when we have specified the output file then corresponding directory becomes the dir_of_curr_exec
+		"""
+		when we have specified the output file then corresponding directory becomes the dir_of_curr_exec
+		"""
 		k1 = OUTPUT_FILENAME.rfind("/")
 		if (k1 == -1):
 			dir_of_curr_exec = './'
 		else:
 			dir_of_curr_exec = OUTPUT_FILENAME[:(k1+1)]
 		Output_Text_File = OUTPUT_FILENAME + '_complete_text_description'   
-		print 'Output_Text_File: ', Output_Text_File
-		# create the directory
-		if (os.path.isdir(dir_of_curr_exec) == False):
-			mkdr_cmd = 'mkdir ' + dir_of_curr_exec
-			os.system(mkdr_cmd)               
 
-	# note the program beginning time 
+	"""
+	create the directory
+	"""
+	if (os.path.isdir(dir_of_curr_exec) == False):
+		mkdr_cmd = 'mkdir ' + dir_of_curr_exec
+		os.system(mkdr_cmd)               
+	print 'Output_Text_File: ', Output_Text_File
+	
+	"""
+	note the program beginning time 
+	"""
 	start_timestamp = time.time()
 
 	#-------------------------------------------------------------
@@ -213,22 +214,30 @@ def main():
 	"""
 	Gene_TreeList = Read_Input_Treelist(ROOTED_TREE, PRESERVE_UNDERSCORE, INPUT_FILE_FORMAT, INPUT_FILENAME)
 	#-------------------------------------------------------------
-	# from the input source trees, note the number of taxa (total)
-	# and also define the class instances corresponding to single taxa
+	"""
+	from the input source trees, note the number of taxa (total)
+	and also define the class instances corresponding to single taxa
+	"""
 	for tr_idx in range(len(Gene_TreeList)):
 		taxa_labels_curr_tree = Gene_TreeList[tr_idx].infer_taxa().labels()
 		for i in range(len(taxa_labels_curr_tree)):
 			if taxa_labels_curr_tree[i] not in COMPLETE_INPUT_TAXA_LIST:
 				COMPLETE_INPUT_TAXA_LIST.append(taxa_labels_curr_tree[i])
 		
-	# now process individual trees to find the couplet relations of those trees
+	"""
+	now process individual trees to find the couplet relations of those trees
+	"""
 	for tr_idx in range(len(Gene_TreeList)):
 		DeriveCoupletRelations(Gene_TreeList[tr_idx], METHOD_USED)
 
-	# note the time
+	"""
+	note the time
+	"""
 	end_timestamp = time.time() 
 		
-	# note the time taken for reading the dataset
+	"""
+	note the time taken for reading the dataset
+	"""
 	time_read_dataset = (end_timestamp - start_timestamp)
 
 	fp = open(Output_Text_File, 'w')    
@@ -245,8 +254,10 @@ def main():
 		for coup in TaxaPair_Reln_Dict:
 			TaxaPair_Reln_Dict[coup]._PrintTaxaPairRelnInfo(coup, Output_Text_File, METHOD_USED)
 			
-	# generate a star network from the input taxa labels
-	# form a newick formatted string containing the tree
+	"""
+	generate a star network from the input taxa labels
+	form a newick formatted string containing the tree
+	"""
 	star_net_str = ""
 	for i in range(len(COMPLETE_INPUT_TAXA_LIST)):
 		star_net_str = star_net_str + str(COMPLETE_INPUT_TAXA_LIST[i])
@@ -254,7 +265,9 @@ def main():
 			star_net_str = star_net_str + ","
 	star_net_str = "(" + star_net_str + ")"
 
-	# this tree denotes the initial star configuration (rooted at the central hub)
+	"""
+	this tree denotes the initial star configuration (rooted at the central hub)
+	"""
 	Output_Tree = dendropy.Tree.get_from_string(star_net_str, schema="newick", \
 								preserve_underscores=PRESERVE_UNDERSCORE, \
 								default_as_rooted=True)          
@@ -265,7 +278,9 @@ def main():
 		fp.write('\n from tree ---: ' + Output_Tree.as_newick_string())
 		fp.close()
 
-	# now perform the agglomerative clustering technique based on the extra lineages
+	"""
+	now perform the agglomerative clustering technique based on the extra lineages
+	"""
 	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, \
 		RANK_AGGREGATE_METHOD_TYPE, DIST_MAT_TYPE)	#, DIST_MAT_UPDATE)
 
@@ -275,7 +290,9 @@ def main():
 
 	out_treefilename = dir_of_curr_exec + '/' + 'outtree_Newick.tre'
 
-	# we write the unweighted supertree
+	"""
+	we write the unweighted supertree
+	"""
 	outfile = open(out_treefilename, 'w')
 	outfile.write(Output_Tree.as_newick_string())	
 	outfile.close()
@@ -308,7 +325,9 @@ def main():
 	fp.write('\n \n Total time taken (in seconds) : ' + str(end_timestamp - start_timestamp))
 	fp.close()
 
-	# clear the storage  variables
+	"""
+	clear the storage  variables
+	"""
 	TaxaPair_Reln_Dict.clear()
 	if (len(COMPLETE_INPUT_TAXA_LIST) > 0):
 		COMPLETE_INPUT_TAXA_LIST[:] = []  
@@ -316,7 +335,4 @@ def main():
 #-----------------------------------------------------
 if __name__ == "__main__":
 	main() 
-
-
-
 
