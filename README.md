@@ -23,7 +23,8 @@ Description
 Input
 -----------
 
-A collection of gene trees (formed by sampling individual genes from a group of taxa) with overlapping taxa set, having topological incongruence 
+A collection of gene trees (formed by sampling individual genes from a group of taxa) 
+with overlapping taxa set, having topological incongruence 
 due to Incomplete Lineage Sorting (ILS). Gene trees may or may not be weighted; our species tree estimation method 
 does not consider the branch lengths of the tree.
 
@@ -50,8 +51,9 @@ median and average of excess gene leaf count, computed for all the gene trees. T
 are used separately based on the principle of lowest agregated rank, to construct the species tree using NJ.
 This method is termed as MedNJstXL or MNJstXL.
 
-B) PNJstXL (or ProdNJstXL): Here, we use the product of internode count and excess gene leaf count to construct a single distance matrix, 
-for NJ based species tree construction.
+B) PNJstXL (or ProdNJstXL): Here, we use the product of internode count and 
+excess gene leaf count to construct a single distance matrix, 
+for NJ based species tree construction. This method produces better performance.
 
 *********************************
 Dependencies
@@ -145,7 +147,9 @@ If no such option is provided, our method performs the following operations:
 If m = 1, a directory “MedNJSTXL” is created within the same directory containing the input treelist file. 
 Within this new created directory, one file 'outtree_newick.tre' is created, which contains the derived species tree. 
 Another text file named 'Complete_Desription.txt' is created, which contains execution and timing information 
-for the method. For m = 2,  a directory 'ProdNJSTXL' is created within 
+for the method. 
+
+For m = 2,  a directory 'ProdNJSTXL' is created within 
 the same directory containing the input treelist file. Above mentioned files within the new directory are 
 generated as per the execution.
 
