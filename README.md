@@ -6,15 +6,16 @@ MNJSTXL & PNJSTXL
 Species tree estimation using internode count and excess gene leaves information
 ******************************
 
-MNJSTXL & PNJSTXL is a python based tool for computing species tree from a set of incongruent gene trees 
+MNJSTXL & PNJSTXL are python based tools for computing species tree from a set of incongruent gene trees 
 with Incomplete Lineage Sorting (ILS). Following measures between individual couplets are compurted 
 for species tree estimation.
 
 A) Internode count between individual couplets (proposed in NJst approach (Liu et. al. 2011))
 
-B) Excess gene leaves count between individual couplets, computed for all the input gene trees.
+B) A novel measure, termed as the "Excess gene leaves count between individual couplets", 
+computed for all the input gene trees.
 
-These measures are used to form respective distance matrices, which will be subsequently used for NJ 
+These measures are used to form respective distance matrices, which are subsequently used for NJ 
 based species tree construction.
 
 Description
@@ -34,7 +35,7 @@ standard tree list file, according to the syntax of NEXUS or NEWICK formats. Suc
 text file is to be provided as an input of this executable.
 
 Output
---------
+----------
 
 A species tree covering all the taxa of the gene trees. Output species tree 
 is generated in the NEWICK format.
@@ -44,16 +45,42 @@ Methods implemented
 
 We have implemented following 2 kinds of methods for species tree estimation methods.
 
-A) MNJstXL (or MedNJstXL): Internode count and excess gene leaf count between individual couplets are 
-computed with respect to input gene trees. Two separate distance matrices are constructed next. One contains 
-the couplet based average internode count measure. Another matrix contains the minimum of 
-median and average of excess gene leaf count, computed for all the gene trees. These two distance matrices 
-are used separately based on the principle of lowest agregated rank, to construct the species tree using NJ.
-This method is termed as MedNJstXL or MNJstXL.
+A) MNJstXL (or MedNJstXL): 
 
-B) PNJstXL (or ProdNJstXL): Here, we use the product of internode count and 
-excess gene leaf count to construct a single distance matrix, 
-for NJ based species tree construction. This method produces better performance.
+This approach computes the following two separate distance matrices:
+
+Let I = matrix of internode count of individual couplets
+      X = matrix of excess gene leaf count of individual couplets
+      
+      I is constructed using the average internode count measure for individual couplets (according to the 
+      procedure mentioned in NJst (Liu et. al. 2011))
+      
+      X is constructed by using the mean of average XL and the filtered average XL measures for 
+      individual couplets. The concept of filtered averaging is described in the paper.
+
+Neighbor Joining (NJ) based species tree construction methods, compute the relative distance of individual 
+couplets, with respect to all other couplets, in terms of the given distance matrix.
+
+Let, I(x,y) = relative internode count of the couplet (x,y) (with respect to other couplets (x,z) and (y,z) for 
+all other taxon z belonging to the set of input gene trees)
+ 
+ Similarly, let X(x,y) = relative excess gene leaf count of the couplet (x,y) (with respect to other couplets (x,z) and (y,z) for 
+all other taxon z belonging to the set of input gene trees)
+
+MNJstXL computes the ranks (position in the sorted list of ascending order) of I(x,y) and X(x,y) and computes the 
+aggregate of these ranks. Suppose, r(x,y) denotes the agregated rank for the couplet (x,y).
+
+The couplet (x,y) having minimum r(x,y) gets selected for agglomeration in the current iteration.
+
+B) PNJstXL (or ProdNJstXL): 
+
+Here, we employ the product of I(x,y) and X(x,y) as a criterion for the selection of couplet. 
+A couplet (x,y) which is a possible candidate for agglomeration, should have low values of both of these measures.
+So, their product would also be very low.
+
+So, the couplet (x,y) having the minimum (I(x,y) * X(x,y)) gets selected for agglomeration in the current iteration.
+
+This method produces better performance.
 
 *********************************
 Dependencies
@@ -144,12 +171,12 @@ Here, user can specify the output file name containing the derived species tree 
 
 If no such option is provided, our method performs the following operations:
 
-If m = 1, a directory “MedNJSTXL” is created within the same directory containing the input treelist file. 
+If m = 1, a directory “MNJSTXL” is created within the same directory containing the input treelist file. 
 Within this new created directory, one file 'outtree_newick.tre' is created, which contains the derived species tree. 
 Another text file named 'Complete_Desription.txt' is created, which contains execution and timing information 
 for the method. 
 
-For m = 2,  a directory 'ProdNJSTXL' is created within 
+For m = 2,  a directory 'PNJSTXL' is created within 
 the same directory containing the input treelist file. Above mentioned files within the new directory are 
 generated as per the execution.
 
