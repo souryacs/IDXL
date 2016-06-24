@@ -74,23 +74,15 @@ def parse_options():
 				type="int", \
 				action="store", \
 				dest="method_type", \
-				default=2, \
-				help="1 - MedNJSTXL (Average of internode count with min(average, median) of excess gene count) \
-				2 - ProdNJSTXL (Product of average internode count with median of excess gene count)")
-			
-	#parser.add_option("-n", "--njrule", \
-				#type="int", \
-				#action="store", \
-				#dest="NJ_type", \
-				#default=1, \
-				#help="1 - classical NJ method (Default) \
-				#2 - Normalized couplet statistic for agglomeration")     
+				default=1, \
+				help="1 - MNJSTXL (Minimum sum of positional ranks of internode count and excess gene count) \
+				2 - PNJSTXL (Product of internode count and excess gene count)")
 	
 	#parser.add_option("-d", "--distmat", \
 				#type="int", \
 				#action="store", \
 				#dest="dist_mat_type", \
-				#default=1, \
+				#default=3, \
 				#help="1 - Average of XL \
 				#2 - mode of XL \
 				#3 - min(avg, median) of XL \
@@ -98,14 +90,6 @@ def parse_options():
 				#5 - Avg(avg , mode) of XL \
 				#6 - Avg(avg , median, mode) of XL")     
 
-	#parser.add_option("-u", "--update", \
-				#type="int", \
-				#action="store", \
-				#dest="dist_mat_update", \
-				#default=1, \
-				#help="1 - Use divide by 2 \
-				#2 - Max operator")     
-	
 	parser.add_option("-r", "--ROOT", \
 			type="string", \
 			action="store", \
@@ -142,8 +126,7 @@ def main():
 	
 	METHOD_USED = opts.method_type
 	
-	DIST_MAT_TYPE = 5	# opts.dist_mat_type
-	#DIST_MAT_UPDATE = opts.dist_mat_update
+	#DIST_MAT_TYPE = opts.dist_mat_type
 	
 	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
 	
@@ -176,9 +159,9 @@ def main():
 		if (METHOD_USED == NJSTXL):
 			dir_of_curr_exec = dir_of_inp_file + 'NJSTXL'
 		elif (METHOD_USED == MedNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'MedNJSTXL'
+			dir_of_curr_exec = dir_of_inp_file + 'MNJSTXL'	#_test_D' + str(DIST_MAT_TYPE) + '_Mode' + str(MODE_PERCENT)
 		elif (METHOD_USED == ProdNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'ProdNJSTXL'	#_D' + str(DIST_MAT_TYPE) + '_Mode' + str(MODE_PERCENT)
+			dir_of_curr_exec = dir_of_inp_file + 'PNJSTXL'	#_test_D' + str(DIST_MAT_TYPE) + '_Mode' + str(MODE_PERCENT)
 		"""
 		append the current output directory in the text file
 		"""
@@ -282,7 +265,7 @@ def main():
 	now perform the agglomerative clustering technique based on the extra lineages
 	"""
 	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, \
-		RANK_AGGREGATE_METHOD_TYPE, DIST_MAT_TYPE)	#, DIST_MAT_UPDATE)
+		RANK_AGGREGATE_METHOD_TYPE)	#, DIST_MAT_TYPE)
 
 	fp = open(Output_Text_File, 'a')
 	fp.write('\n --- output species tree (in newick format): ' + Output_Tree.as_newick_string())    

@@ -2,14 +2,14 @@
 
 """
 program for species tree estimation
-computes four criteria - 
-1) Level / internode count information
-2) Accumulated Rank statistics 
+computes following two measures
+1) Internode count
+2) Excess gene leaf count
 """
 
 import dendropy
 from optparse import OptionParser
-#import math
+import math
 import time
 import os
 import numpy
@@ -30,6 +30,7 @@ COMPLETE_INPUT_TAXA_LIST = []
 # set for printing the necessary information
 DEBUG_LEVEL = 0
 
+#-----------------------------------------------------
 """
 variables depicting the method employed for species tree construction
 first two methods use average statistics of the coalescence rank or the internode count
@@ -45,13 +46,12 @@ accumulated internode count with average statistics
 plus minimum (median, average) of excess gene count measure 
 """
 MedNJSTXL = 1
-
 """
 product of average internode count and excess lineage information
 to infer species tree
 """
 ProdNJSTXL = 2
-
+#-----------------------------------------------------
 
 """
 ******** sourya *******
@@ -62,24 +62,34 @@ we did not use the mode statistics
 """
 
 """
+In the communicated paper of ACM-BCB 2016
+we have used mode based filtered average of the XL measure
+"""
+
+"""
+these two variables are used to define the mode based average of the XL measure
+this was originally not used
+we can check two different values of mode percentage: 0.25 and 0.5
+
+Note: After experiments, we have fixed following two values
+"""
+MODE_PERCENT = 0.25
+MODE_BIN_COUNT = 40
+
+#-----------------------------------------------------
+
+"""
 variables used to denote whether we use traditional NJ method
 or use a variant of it, namely the agglomerative clustering
+
+Note: we have found that traditional NJ method is suitable
 """
 TRADITIONAL_NJ = 1
 AGGLO_CLUST = 2
 
 """
-these two variables are used to define the mode based average of the XL measure
-this was originally not used
-
-we can check two different values of mode percentage: 0.25 and 0.5
-
-"""
-MODE_PERCENT = 0.25
-MODE_BIN_COUNT = 40
-
-"""
 this list corresponds to various rank merging algorithm
+used when the method MedNJSTXL is employed for species tree estimation
 """
 SIMPLE_SUM_RANK = 1
 MEAN_RECIPROCAL_RANK = 2
@@ -96,12 +106,12 @@ class Reln_TaxaPair(object):
 		"""
 		self.tree_support_count = 0        
 		"""
-		this list contains the number of levels (tree internodees) between individual couplets
+		this list contains the count of internodees between individual couplets
 		computed for all the gene trees
 		"""
 		self.sum_internode_count = 0
 		"""
-		this is the extra lineage count list for this couplet
+		this is the excess gene leaf count list for this couplet
 		"""
 		self.XL_val_list = []
 		"""
@@ -113,7 +123,8 @@ class Reln_TaxaPair(object):
 		self.binned_avg_XL = -1
 		self.avg_XL = -1
 		self.median_XL = -1
-	
+
+	#-----------------------------------------------
 	"""
 	this function adds the count of tree according to the support of 
 	corresponding couplet in the input tree
@@ -127,6 +138,7 @@ class Reln_TaxaPair(object):
 	def _GetSupportTreeCount(self):
 		return self.tree_support_count        
 	
+	#-----------------------------------------------
 	def _AddXLVal(self, val):
 		self.XL_val_list.append(val)
 
@@ -201,12 +213,12 @@ class Reln_TaxaPair(object):
 	# this function prints information for the current couplet
 	def _PrintTaxaPairRelnInfo(self, key, out_text_file, METHOD_USED):
 		fp = open(out_text_file, 'a')    
-		fp.write('\n taxa pair key: ' + str(key))
+		fp.write('\n\n ****** taxa pair key: ' + str(key))
 		fp.write('\n supporting number of trees: ' + str(self._GetSupportTreeCount()))
-		fp.write('\n *** average sum of internode count : ' + str(self._GetAvgSumLevel()))    
-		fp.write('\n *** average XL val : ' + str(self._GetAvgXLVal()))   
-		fp.write('\n *** median XL val : ' + str(self._MedianXLVal()))   
-		fp.write('\n *** 50 percent mode XL val : ' + str(self._GetMultiModeXLVal()))   
+		fp.write('\n average internode count: ' + str(self._GetAvgSumLevel()))    
+		fp.write('\n average XL: ' + str(self._GetAvgXLVal()))   
+		fp.write('\n median XL : ' + str(self._MedianXLVal()))   
+		fp.write('\n Mode based filtered average XL: ' + str(self._GetMultiModeXLVal()))   
 		fp.close()
 			
 		## sourya - debug
