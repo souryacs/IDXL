@@ -19,95 +19,58 @@ import sys
 #-------------------------------------------------------------
 """ 
 this dictionary defines the taxa pair relations
-each entry is indexed by two nodes 
+each entry is indexed by two leaves 
 """
 TaxaPair_Reln_Dict = dict()
 
-# these variables store the respective parameters of input gene trees
+"""
+Stores the complete set of input taxa covered in the input gene trees
+"""
 COMPLETE_INPUT_TAXA_LIST = []
 
-# this is the debug level
-# set for printing the necessary information
+"""
+this is the debug level
+set for printing the necessary information
+"""
 DEBUG_LEVEL = 0
 
 #-----------------------------------------------------
-"""
-variables depicting the method employed for species tree construction
-first two methods use average statistics of the coalescence rank or the internode count
-last two methods employ the mode statistics
-"""
-"""
-accumulated internode count with average statistics
-plus average of excess gene count measure 
-"""
-NJSTXL = 3
-"""
-accumulated internode count with average statistics
-plus minimum (median, average) of excess gene count measure 
-"""
-MedNJSTXL = 1
-"""
-product of average internode count and excess lineage information
-to infer species tree
-"""
-ProdNJSTXL = 2
-#-----------------------------------------------------
-
 """
 ******** sourya *******
 in the communicated paper to TCBB (Jan 2016)
 we have used average of internode count
 and the avg(avg, median) of XL measure
-we did not use the mode statistics
+we did not use the filtered (mode based average) of XL
 """
-
 """
 In the communicated paper of ACM-BCB 2016
 we have used mode based filtered average of the XL measure
 """
-
 """
 these two variables are used to define the mode based average of the XL measure
 this was originally not used
 we can check two different values of mode percentage: 0.25 and 0.5
 
 Note: After experiments, we have fixed following two values
+0.25 and 40
 """
-MODE_PERCENT = 0.25
+MODE_PERCENT = 0.5	#0.5
 MODE_BIN_COUNT = 40
 
 #-----------------------------------------------------
-
-"""
-variables used to denote whether we use traditional NJ method
-or use a variant of it, namely the agglomerative clustering
-
-Note: we have found that traditional NJ method is suitable
-"""
-TRADITIONAL_NJ = 1
-AGGLO_CLUST = 2
-
-"""
-this list corresponds to various rank merging algorithm
-used when the method MedNJSTXL is employed for species tree estimation
-"""
-SIMPLE_SUM_RANK = 1
-MEAN_RECIPROCAL_RANK = 2
-
-#-----------------------------------------------------
 """ 
-this class defines the connectivity relationship between a pair of taxa
-initially the information are obtained from the input source trees
+this class defines the relationship between a pair of taxa
+initially the information are obtained from the input gene trees
 """
 class Reln_TaxaPair(object):  
 	def __init__(self):
 		"""
-		this is the count of trees for which the couplet is supported
+		this is the count of trees supporting (containing) the couplet
 		"""
 		self.tree_support_count = 0        
 		"""
-		this list contains the count of internodees between individual couplets
-		computed for all the gene trees
+		this list contains the sum of internode counts between this couplet
+		computed for all the supporting gene trees
 		"""
 		self.sum_internode_count = 0
 		"""
@@ -115,7 +78,7 @@ class Reln_TaxaPair(object):
 		"""
 		self.XL_val_list = []
 		"""
-		this is a variable containing the binned average of the XL values
+		this is a variable containing the binned (filtered) average of the XL values
 		of very high frequency
 		initially the value is set as -1, to signify that the computation is not done
 		once the computation (for a couplet) is done, the value is subsequently used and returned
@@ -126,8 +89,7 @@ class Reln_TaxaPair(object):
 
 	#-----------------------------------------------
 	"""
-	this function adds the count of tree according to the support of 
-	corresponding couplet in the input tree
+	this function adds the count of supporting tree containing this particular couplet
 	"""
 	def _IncrSupportTreeCount(self):
 		self.tree_support_count = self.tree_support_count + 1
@@ -139,19 +101,31 @@ class Reln_TaxaPair(object):
 		return self.tree_support_count        
 	
 	#-----------------------------------------------
+	"""
+	inserts the XL measure for the current tree in the XL list
+	"""
 	def _AddXLVal(self, val):
 		self.XL_val_list.append(val)
 
+	"""
+	average of the XL values for all the gene trees
+	"""
 	def _GetAvgXLVal(self):
 		if (self.avg_XL == -1):
 			self.avg_XL = (sum(self.XL_val_list) * 1.0) / self.tree_support_count
 		return self.avg_XL
-	
+
+	"""
+	Median of the XL values for all the gene trees
+	"""
 	def _MedianXLVal(self):
 		if (self.median_XL == -1):
 			self.median_XL = numpy.median(numpy.array(self.XL_val_list))
 		return self.median_XL
 	
+	"""
+	Filtered average of the XL values for all the gene trees
+	"""
 	def _GetMultiModeXLVal(self, Output_Text_File=None):
 		if (self.binned_avg_XL == -1):
 			
@@ -203,17 +177,23 @@ class Reln_TaxaPair(object):
 			
 		return self.binned_avg_XL
 	#------------------------------------------
-
+	"""
+	insert the internode count for the current input tree supporting this couplet
+	"""
 	def _AddLevel(self, val):
 		self.sum_internode_count = self.sum_internode_count + val
 
+	"""
+	average internode count for this couplet
+	"""
 	def _GetAvgSumLevel(self):
 		return (self.sum_internode_count * 1.0) / self.tree_support_count
 
 	# this function prints information for the current couplet
-	def _PrintTaxaPairRelnInfo(self, key, out_text_file, METHOD_USED):
+	def _PrintTaxaPairRelnInfo(self, key, out_text_file):
 		fp = open(out_text_file, 'a')    
-		fp.write('\n\n ****** taxa pair key: ' + str(key))
+		fp.write('\n\n taxa pair key: ' + str(key) + ' Couplet: (' + COMPLETE_INPUT_TAXA_LIST[key[0]] \
+			+ ',' + COMPLETE_INPUT_TAXA_LIST[key[1]] + ')')
 		fp.write('\n supporting number of trees: ' + str(self._GetSupportTreeCount()))
 		fp.write('\n average internode count: ' + str(self._GetAvgSumLevel()))    
 		fp.write('\n average XL: ' + str(self._GetAvgXLVal()))   
@@ -259,7 +239,5 @@ class Reln_TaxaPair(object):
 			#plt.close()	# close the figure window
 			
 		## end sourya - debug
-			
-		
     
       

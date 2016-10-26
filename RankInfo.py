@@ -5,42 +5,45 @@ from UtilFunc import *
 
 #--------------------------------------------------------
 """
-this function computes following two measures for individual couplets:
+this function adds the following two measures for individual couplets:
 1) Internode count 
 2) Excess gene leaf count
-
 Both measures use the LCA node for the corresponding couplet
 """
-def Compute_Internode_ExcessGeneLeaf(taxa_count, xl_val, curr_node_level, node1, node2):
+def Compute_Internode_ExcessGeneLeaf(taxa_count, xl_val, curr_node_level, node1_level, node2_level, node1_idx, node2_idx):
 
-	node1_level = node1.level()
-	node2_level = node2.level()
-	
 	"""
 	sourya - check between using normalized internode count or simple integer values 
 	Note: We use the normalized internode count
 	"""
 	#internode_count = ((node1_level - curr_node_level) + (node2_level - curr_node_level)) - 1
 	internode_count = ((node1_level - curr_node_level) + (node2_level - curr_node_level) - 1) * 1.0 / taxa_count
-
-	key1 = (node1.taxon.label, node2.taxon.label)
-	key2 = (node2.taxon.label, node1.taxon.label)
-	if key1 in TaxaPair_Reln_Dict:
-		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
-		TaxaPair_Reln_Dict[key1]._AddLevel(internode_count)
-		TaxaPair_Reln_Dict[key1]._AddXLVal(xl_val)
 	
-	elif key2 in TaxaPair_Reln_Dict:
-		TaxaPair_Reln_Dict[key2]._IncrSupportTreeCount()
-		TaxaPair_Reln_Dict[key2]._AddLevel(internode_count)
-		TaxaPair_Reln_Dict[key2]._AddXLVal(xl_val)
-		
+	"""
+	create the couplet key in the dictionary provided it does not exist
+	the key has a form (idx1, idx2) where idx1 < idx2
+	idx is computed with respect to the COMPLETE_INPUT_TAXA_LIST
+	"""
+	if (node1_idx < node2_idx):
+		target_key = (node1_idx, node2_idx)
 	else:
-		TaxaPair_Reln_Dict.setdefault(key1, Reln_TaxaPair())
-		TaxaPair_Reln_Dict[key1]._IncrSupportTreeCount()
-		TaxaPair_Reln_Dict[key1]._AddLevel(internode_count)
-		TaxaPair_Reln_Dict[key1]._AddXLVal(xl_val)
-		
+		target_key = (node2_idx, node1_idx)
+	if target_key not in TaxaPair_Reln_Dict:
+		TaxaPair_Reln_Dict.setdefault(target_key, Reln_TaxaPair())
+	
+	"""
+	add the count of supporting input trees for this couplet
+	"""
+	TaxaPair_Reln_Dict[target_key]._IncrSupportTreeCount()
+	"""
+	add the internode count measure with respect to the current input tree
+	"""
+	TaxaPair_Reln_Dict[target_key]._AddLevel(internode_count)
+	"""
+	add the XL measure with respect to the current input tree
+	"""
+	TaxaPair_Reln_Dict[target_key]._AddXLVal(xl_val)
+	
 	return
 
 #--------------------------------------------------------
@@ -48,12 +51,13 @@ def Compute_Internode_ExcessGeneLeaf(taxa_count, xl_val, curr_node_level, node1,
 this function derives couplet relations belonging to one tree
 that is provided as an input argument to this function
 """
-def DeriveCoupletRelations(Curr_tree, METHOD_USED):
+def DeriveCoupletRelations(Curr_tree):
 
 	Curr_tree_taxa_count = len(Curr_tree.infer_taxa().labels())
 
 	"""
 	traverse the internal nodes of the tree in postorder fashion
+	for each internal node x, we would find the couplets whose LCA (lowest common ancestor) node is x
 	"""
 	for curr_node in Curr_tree.postorder_internal_node_iter():
 		"""
@@ -64,6 +68,8 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 		
 		"""
 		sourya - check between using normalized excess gene count or simple integer values 
+		Currently the normalized XL value is used since it is applicable 
+		for the gene trees carrying partially overlapping taxa subsets
 		"""
 		#xl_val = len(curr_node.leaf_nodes()) - 2
 		xl_val = ((len(curr_node.leaf_nodes()) - 2) * 1.0 ) / Curr_tree_taxa_count
@@ -84,9 +90,15 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 		"""
 		if (len(curr_node_child_leaf_nodes) > 1):
 			for i in range(len(curr_node_child_leaf_nodes) - 1):
+				node1 = curr_node_child_leaf_nodes[i]
+				node1_level = node1.level()
+				node1_idx = COMPLETE_INPUT_TAXA_LIST.index(node1.taxon.label)
 				for j in range(i+1, len(curr_node_child_leaf_nodes)):
+					node2 = curr_node_child_leaf_nodes[j]
+					node2_level = node2.level()
+					node2_idx = COMPLETE_INPUT_TAXA_LIST.index(node2.taxon.label)
 					Compute_Internode_ExcessGeneLeaf(Curr_tree_taxa_count, xl_val, curr_node_level, \
-						curr_node_child_leaf_nodes[i], curr_node_child_leaf_nodes[j])
+						node1_level, node2_level, node1_idx, node2_idx)
 		
 		"""
 		one leaf node (direct descendant) and another leaf node (under one internal node)
@@ -94,19 +106,32 @@ def DeriveCoupletRelations(Curr_tree, METHOD_USED):
 		"""
 		if (len(curr_node_child_leaf_nodes) > 0) and (len(curr_node_child_internal_nodes) > 0):
 			for p in curr_node_child_leaf_nodes:
+				node1 = p
+				node1_level = node1.level()
+				node1_idx = COMPLETE_INPUT_TAXA_LIST.index(node1.taxon.label)
 				for q in curr_node_child_internal_nodes:
 					for r in q.leaf_nodes():
-						Compute_Internode_ExcessGeneLeaf(Curr_tree_taxa_count, xl_val, curr_node_level, p, r)
+						node2 = r
+						node2_level = node2.level()
+						node2_idx = COMPLETE_INPUT_TAXA_LIST.index(node2.taxon.label)
+						Compute_Internode_ExcessGeneLeaf(Curr_tree_taxa_count, xl_val, curr_node_level, \
+							node1_level, node2_level, node1_idx, node2_idx)
 		
 		"""
-		finally a pair of leaf nodes which are descendant of internal nodes will be related by 
-		RELATION_R4 relation
+		finally a pair of leaf nodes which are descendant of internal nodes are processed
 		"""
 		if (len(curr_node_child_internal_nodes) > 1):
 			for i in range(len(curr_node_child_internal_nodes) - 1):
-				for j in range(i+1, len(curr_node_child_internal_nodes)):
-					for p in curr_node_child_internal_nodes[i].leaf_nodes():
+				for p in curr_node_child_internal_nodes[i].leaf_nodes():
+					node1 = p
+					node1_level = node1.level()
+					node1_idx = COMPLETE_INPUT_TAXA_LIST.index(node1.taxon.label)
+					for j in range(i+1, len(curr_node_child_internal_nodes)):
 						for q in curr_node_child_internal_nodes[j].leaf_nodes():
-							Compute_Internode_ExcessGeneLeaf(Curr_tree_taxa_count, xl_val, curr_node_level, p, q)
+							node2 = q
+							node2_level = node2.level()
+							node2_idx = COMPLETE_INPUT_TAXA_LIST.index(node2.taxon.label)
+							Compute_Internode_ExcessGeneLeaf(Curr_tree_taxa_count, xl_val, curr_node_level, \
+								node1_level, node2_level, node1_idx, node2_idx)
 		
 	return

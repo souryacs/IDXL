@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-##---------------------------------------------
-''' 
+#---------------------------------------------
+"""
 this program is used to generate a spcies tree from a set of gene trees
-the gene trees generally associate conflicts among the constituent genes (representing individual taxa)
-in terms of the topological relationships
-species tree follows simple approach to produce species tree with high performance index
+the gene trees generally associate topological conflicts
+The conflict is modeled by ILS (incomplete lineage sorting)
 
 Author: Sourya Bhattacharyya
 Dept of CSE, IIT Kharagpur
@@ -25,14 +24,14 @@ V3.1 - 05.12.2015 - Added product of internode count and excess gene leaf count 
 										generate species tree using NJ based method.
 V3.2 - 22.12.2015 - Introduced concept of sophisticated rank merging such as mean reciprocal rank
 V4.0 - 27.06.2015 - Introduced mode based filtered XL value, to be used in conjuction with the internode count measure
-''' 
+""" 
 
-## Copyright 2015, 2016 Sourya Bhattacharyya and Jayanta Mukherjee.
-## All rights reserved.
-##
-## See "LICENSE.txt" for terms and conditions of usage.
-##
-##---------------------------------------------
+# Copyright 2015, 2016 Sourya Bhattacharyya and Jayanta Mukherjee.
+# All rights reserved.
+#
+# See "LICENSE.txt" for terms and conditions of usage.
+#
+#---------------------------------------------
 
 import Header
 from Header import *
@@ -60,35 +59,34 @@ def parse_options():
 				action="store", \
 				dest="OUT_FILENAME", \
 				default="", \
-				help="name of the output file to contain target species tree")  
+				help="name of the output file to contain species tree")  
 
 	parser.add_option("-p", "--inpform", \
 				type="int", \
 				action="store", \
 				dest="inp_file_format", \
 				default=1, \
-				help="1 - input file format is NEWICK (default) \
-				2 - input file format is NEXUS")
+				help="1 - input (treelist) file format is NEWICK (default) \
+				2 - input (treelist) file format is NEXUS")
 
 	parser.add_option("-m", "--method", \
 				type="int", \
 				action="store", \
 				dest="method_type", \
 				default=1, \
-				help="1 - MNJSTXL (Minimum sum of positional ranks of internode count and excess gene count) \
-				2 - PNJSTXL (Product of internode count and excess gene count)")
+				help="IDXL (traditional) \
+				2 - IDXL with rank check (Minor change with old PNJSTXL) \
+				3 - IDXL (stdev analysis with rank check) \
+				4 - IDXL (stdev for both relative ID, relative XL, and absolute XL)")
 	
-	#parser.add_option("-d", "--distmat", \
-				#type="int", \
-				#action="store", \
-				#dest="dist_mat_type", \
-				#default=3, \
-				#help="1 - Average of XL \
-				#2 - mode of XL \
-				#3 - min(avg, median) of XL \
-				#4 - min(avg, mode) of XL \
-				#5 - Avg(avg , mode) of XL \
-				#6 - Avg(avg , median, mode) of XL")     
+	parser.add_option("-d", "--distmat", \
+				type="int", \
+				action="store", \
+				dest="dist_mat_type", \
+				default=1, \
+				help="1 - Avg of XL \
+				2 - Avg(avg , mode) of XL \
+				3 - Avg(avg , median, mode) of XL")   
 
 	parser.add_option("-r", "--ROOT", \
 			type="string", \
@@ -96,14 +94,6 @@ def parse_options():
 			dest="outgroup_taxon_name", \
 			default="", \
 			help="name of the taxon by which the tree can be rooted (outgroup based rooting)")
-			
-	#parser.add_option("-a", "--aggrank", \
-				#type="int", \
-				#action="store", \
-				#dest="Rank_Aggregate_Method_type", \
-				#default=1, \
-				#help="1 - lower sum of positional ranks (default) \
-				#2 - Mean reciprocal rank")     
 			
 	opts, args = parser.parse_args()
 	return opts, args
@@ -124,21 +114,31 @@ def main():
 	INPUT_FILENAME = opts.INP_FILENAME
 	OUTPUT_FILENAME = opts.OUT_FILENAME
 	
+	"""
+	selects the species tree construction method
+	"""
 	METHOD_USED = opts.method_type
-	
-	#DIST_MAT_TYPE = opts.dist_mat_type
-	
-	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
-	
-	RANK_AGGREGATE_METHOD_TYPE = SIMPLE_SUM_RANK	# opts.Rank_Aggregate_Method_type
 
-	NJ_RULE_USED = TRADITIONAL_NJ
-		
+	"""
+	the XL based distance matrix is constructed according to this argument
+	"""
+	DIST_MAT_TYPE = opts.dist_mat_type
+
+	"""
+	the specified taxon name by which the final species tree can be forcibly rooted
+	this is an optional argument
+	"""
+	OUTGROUP_TAXON_NAME = opts.outgroup_taxon_name
+
 	if (INPUT_FILENAME == ""):
 		print '******** THERE IS NO INPUT FILE (CONTAINING GENE TREE LIST) SPECIFIED - RETURN **********'
 		return
-	else:
-		print 'input filename: ', INPUT_FILENAME
+
+	"""
+	convert the input filename to an absolute path of the filename
+	"""
+	INPUT_FILENAME = os.path.abspath(INPUT_FILENAME)
+	print 'input filename: ', INPUT_FILENAME
 
 	"""
 	according to the location of input filename
@@ -154,28 +154,26 @@ def main():
 
 	if (OUTPUT_FILENAME == ""):
 		"""
-		derive the output directory which will contain different output text results
+		derive the output directory which will contain the species tree
 		"""
-		if (METHOD_USED == NJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'NJSTXL'
-		elif (METHOD_USED == MedNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'MNJSTXL'	#_test_D' + str(DIST_MAT_TYPE) + '_Mode' + str(MODE_PERCENT)
-		elif (METHOD_USED == ProdNJSTXL):
-			dir_of_curr_exec = dir_of_inp_file + 'PNJSTXL'	#_test_D' + str(DIST_MAT_TYPE) + '_Mode' + str(MODE_PERCENT)
+		dir_of_curr_exec = dir_of_inp_file + 'IDXL_M' + str(METHOD_USED) + '_D' + str(DIST_MAT_TYPE)
+		if (DIST_MAT_TYPE > 1):
+			dir_of_curr_exec = dir_of_curr_exec + '_Mode' + str(MODE_PERCENT)
 		"""
-		append the current output directory in the text file
+		set the output text file
 		"""
 		Output_Text_File = dir_of_curr_exec + '/' + 'Complete_Desription.txt'
 	else:
 		"""
-		when we have specified the output file then corresponding directory becomes the dir_of_curr_exec
+		when we have specified the output file then 
+		corresponding directory becomes the dir_of_curr_exec
 		"""
 		k1 = OUTPUT_FILENAME.rfind("/")
 		if (k1 == -1):
 			dir_of_curr_exec = './'
 		else:
 			dir_of_curr_exec = OUTPUT_FILENAME[:(k1+1)]
-		Output_Text_File = OUTPUT_FILENAME + '_complete_text_description'   
+		Output_Text_File = dir_of_curr_exec + 'Complete_Desription.txt'
 
 	"""
 	create the directory
@@ -189,29 +187,27 @@ def main():
 	note the program beginning time 
 	"""
 	start_timestamp = time.time()
-
 	#-------------------------------------------------------------
 	""" 
-	read the source trees collection and store it in a tree collection structure
-	individual elements of this collection is thus a source tree 
+	read the source trees collection and store it in a treelist
 	"""
 	Gene_TreeList = Read_Input_Treelist(ROOTED_TREE, PRESERVE_UNDERSCORE, INPUT_FILE_FORMAT, INPUT_FILENAME)
 	#-------------------------------------------------------------
 	"""
-	from the input source trees, note the number of taxa (total)
+	from the input trees, note the number of taxa (total)
 	and also define the class instances corresponding to single taxa
 	"""
 	for tr_idx in range(len(Gene_TreeList)):
-		taxa_labels_curr_tree = Gene_TreeList[tr_idx].infer_taxa().labels()
-		for i in range(len(taxa_labels_curr_tree)):
-			if taxa_labels_curr_tree[i] not in COMPLETE_INPUT_TAXA_LIST:
-				COMPLETE_INPUT_TAXA_LIST.append(taxa_labels_curr_tree[i])
-		
+		curr_tree_taxa = Gene_TreeList[tr_idx].infer_taxa().labels()
+		for x in curr_tree_taxa:
+			if x not in COMPLETE_INPUT_TAXA_LIST:
+				COMPLETE_INPUT_TAXA_LIST.append(x)
+	
 	"""
 	now process individual trees to find the couplet relations of those trees
 	"""
 	for tr_idx in range(len(Gene_TreeList)):
-		DeriveCoupletRelations(Gene_TreeList[tr_idx], METHOD_USED)
+		DeriveCoupletRelations(Gene_TreeList[tr_idx])
 
 	"""
 	note the time
@@ -233,9 +229,9 @@ def main():
 	"""
 	this to to print individual couplet information
 	"""
-	if (DEBUG_LEVEL >= 2):
+	if (DEBUG_LEVEL > 2):
 		for coup in TaxaPair_Reln_Dict:
-			TaxaPair_Reln_Dict[coup]._PrintTaxaPairRelnInfo(coup, Output_Text_File, METHOD_USED)
+			TaxaPair_Reln_Dict[coup]._PrintTaxaPairRelnInfo(coup, Output_Text_File)
 			
 	"""
 	generate a star network from the input taxa labels
@@ -264,8 +260,7 @@ def main():
 	"""
 	now perform the agglomerative clustering technique based on the extra lineages
 	"""
-	Form_Species_Tree_NJ_Cluster(Output_Tree, METHOD_USED, NJ_RULE_USED, Output_Text_File, \
-		RANK_AGGREGATE_METHOD_TYPE)	#, DIST_MAT_TYPE)
+	Form_Species_Tree_NJ_Cluster(Output_Tree, Output_Text_File, METHOD_USED, DIST_MAT_TYPE)
 
 	fp = open(Output_Text_File, 'a')
 	fp.write('\n --- output species tree (in newick format): ' + Output_Tree.as_newick_string())    
@@ -305,6 +300,7 @@ def main():
 	# we write the time associated with the execution of this method
 	fp = open(Output_Text_File, 'a')
 	fp.write('\n \n\n ===============>>>>>>>>>>>>>>> TIME COMPLEXITY OF THE METHOD (in seconds) ')
+	fp.write('\n \n Time to read the input data (in seconds) : ' + str(time_read_dataset))
 	fp.write('\n \n Total time taken (in seconds) : ' + str(end_timestamp - start_timestamp))
 	fp.close()
 

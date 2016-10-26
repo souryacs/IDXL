@@ -24,7 +24,7 @@ N is the matrix dimension
 """
 def PrintMatrixContent(N, TaxaList, inp_data, inp_str, textfile):
 	fp = open(textfile, 'a')
-	fp.write('\n printing contents of ' + str(inp_str) + ' ---- ')
+	fp.write('\n\n\n ==>>>> printing contents of ' + str(inp_str) + ' ---- ')
 	for i in range(N):
 		fp.write('\n ' + str(i) + '--' + str(TaxaList[i]) + '--->>')
 		if (i > 0):
@@ -34,93 +34,68 @@ def PrintMatrixContent(N, TaxaList, inp_data, inp_str, textfile):
 
 #----------------------------------------------------
 """
-this function fills the distance matrix using accumulated internode count
+this function fills the input distance matrix using couplet based average internode count
 """
-def Fill_DistMat_BranchInfo(DistMat, METHOD_USED):
-	for l in TaxaPair_Reln_Dict:
-		spec1 = l[0]
-		spec2 = l[1]
-		spec1_idx = COMPLETE_INPUT_TAXA_LIST.index(spec1)
-		spec2_idx = COMPLETE_INPUT_TAXA_LIST.index(spec2)
-		DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgSumLevel()
-		"""
-		symmetric property of the distance matrix
-		"""
-		DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
-	
+def Fill_DistMat_InternodeCount(DistMat, ntaxa):
+	for i in range(ntaxa - 1):
+		for j in range(i+1, ntaxa):
+			"""
+			target key of a couplet (if exists)
+			"""
+			l = (i, j)
+			
+			if l in TaxaPair_Reln_Dict:
+				"""
+				there exists a valid entry in the couplet dictionary
+				"""
+				DistMat[i][j] = TaxaPair_Reln_Dict[l]._GetAvgSumLevel()
+				DistMat[j][i] = DistMat[i][j]
+			else:
+				"""
+				there exists no valid couplet
+				so, set the distance matrix values as (-1)
+				"""
+				DistMat[i][j] = -1
+				DistMat[j][i] = DistMat[i][j]
+
 	return
 
 #----------------------------------------------------
 """
 if excess gene count information is used, this 
-function fills the distance matrix using normalized average excess gene count
+function fills the distance matrix using either average or filtered average XL measure
+depeding on the method and the type of distance matrix
 """
-def Fill_DistMat_ExcessGeneCount(DistMat, METHOD_USED):	#, DIST_MAT_TYPE):
-	for l in TaxaPair_Reln_Dict:
-		spec1 = l[0]
-		spec2 = l[1]
-		spec1_idx = COMPLETE_INPUT_TAXA_LIST.index(spec1)
-		spec2_idx = COMPLETE_INPUT_TAXA_LIST.index(spec2)
-		
-		if (METHOD_USED == NJSTXL):
-			DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
-		elif (METHOD_USED == MedNJSTXL):
-			#"""
-			#average of average, median, and filtered average of XL values
-			#"""
-			#if (DIST_MAT_TYPE == 3):
-				#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
-			#elif (DIST_MAT_TYPE == 5):
-				#DistMat[spec2_idx][spec1_idx] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 2.0 
-			#elif (DIST_MAT_TYPE == 6):
-				#DistMat[spec2_idx][spec1_idx] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + \
-					#TaxaPair_Reln_Dict[l]._MedianXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 3.0
-			DistMat[spec2_idx][spec1_idx] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + \
-				TaxaPair_Reln_Dict[l]._MedianXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 3.0
+def Fill_DistMat_ExcessGeneCount(DistMat, DIST_MAT_TYPE, ntaxa):
+	for i in range(ntaxa - 1):
+		for j in range(i+1, ntaxa):
+			"""
+			target key of a couplet (if exists)
+			"""
+			l = (i, j)
 			
-		elif (METHOD_USED == ProdNJSTXL):
-			DistMat[spec2_idx][spec1_idx] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 2.0 
-			# comment - sourya 
-			# used in the earlier version of the code
-			# corresponding to the TCBB January 2016 submission
-			#"""
-			#minimum of average and median of XL values
-			#"""
-			#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), \
-				#TaxaPair_Reln_Dict[l]._MedianXLVal())
-			# end comment - sourya
+			if l in TaxaPair_Reln_Dict:
+				"""
+				there exists a valid entry in the couplet dictionary
+				"""
+				if (DIST_MAT_TYPE == 1):
+					DistMat[i][j] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
+				elif (DIST_MAT_TYPE == 2):
+					DistMat[i][j] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 2.0 
+				elif (DIST_MAT_TYPE == 3):
+					DistMat[i][j] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + \
+						TaxaPair_Reln_Dict[l]._MedianXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 3.0
+				
+				#symmetric property of the distance matrix
+				DistMat[j][i] = DistMat[i][j]
 			
-			## new code - sourya
-			#if (DIST_MAT_TYPE == 1):
-				#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetAvgXLVal()
-			#elif (DIST_MAT_TYPE == 2):
-				#DistMat[spec2_idx][spec1_idx] = TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()
-			#elif (DIST_MAT_TYPE == 3):
-				#"""
-				#minimum of average and median of XL values
-				#"""
-				#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._MedianXLVal())
-			#elif (DIST_MAT_TYPE == 4):
-				#"""
-				#minimum of average and mode of XL values
-				#"""
-				#DistMat[spec2_idx][spec1_idx] = min(TaxaPair_Reln_Dict[l]._GetAvgXLVal(), TaxaPair_Reln_Dict[l]._GetMultiModeXLVal())
-			#elif (DIST_MAT_TYPE == 5):
-				#"""
-				#average of average and mode of XL values
-				#"""
-				#DistMat[spec2_idx][spec1_idx] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 2.0 
-			#elif (DIST_MAT_TYPE == 6):
-				#"""
-				#average of average, median, and mode of XL values
-				#"""
-				#DistMat[spec2_idx][spec1_idx] = (TaxaPair_Reln_Dict[l]._GetAvgXLVal() + \
-					#TaxaPair_Reln_Dict[l]._MedianXLVal() + TaxaPair_Reln_Dict[l]._GetMultiModeXLVal()) / 3.0
-		
-		"""
-		symmetric property of the distance matrix
-		"""
-		DistMat[spec1_idx][spec2_idx] = DistMat[spec2_idx][spec1_idx]
+			else:
+				"""
+				there exists no valid couplet
+				so, set the distance matrix values as (-1)
+				"""
+				DistMat[i][j] = -1
+				DistMat[j][i] = DistMat[i][j]	# symmetric property
 
 	return
 
@@ -132,7 +107,8 @@ def ComputeSumRowsDistMat(sum_list, nclust, DistMat, Output_Text_File, inpstr):
 	for i in range(nclust):
 		t1 = 0
 		for j in range(nclust):
-			t1 = t1 + DistMat[i][j]
+			if (DistMat[i][j] >= 0):	# add the condition - sourya
+				t1 = t1 + DistMat[i][j]
 		sum_list.append(t1)
 		
 	if (DEBUG_LEVEL > 2):
@@ -173,219 +149,435 @@ def FillNJNormalizeMatrix(NormMat, DistMat, sum_list, nclust):
 	return
 
 #---------------------------------------------
+# ************************ Minimum finding for the method PNJSTXL / IDXL *********************
+#---------------------------------------------
 """
-finds the minimum of the distance matrix
-when the product of both accumulated coalescence rank and excess gene count based 
-measures are used
+this is the oldest version of the function 
+results of this version are stored in the PNJSTXL folders of respective datasets
 """
-def Find_Unique_Min_XL(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, Norm_DistMat_XL, nclust, clust_species_list, NJ_RULE_USED):
+"""
+finds the couplet containing minimum entries of relative distance measures
+when the product of internode count and excess gene count based measures are used
+"""
+def Find_Unique_Min_PNJSTXL_Version1(DM_ID, Norm_DM_ID, DM_XL, Norm_DM_XL, nclust, clust_species_list):
 	
-	target_val = (Norm_DistMat_Branch[0][1] * Norm_DistMat_XL[0][1])
+	target_val = (Norm_DM_ID[0][1] * Norm_DM_XL[0][1])
 	min_idx_i = 0
 	min_idx_j = 1
 	for i in range(nclust - 1):
 		for j in range(i+1, nclust):
 			if (i == j):
 				continue
-			if (NJ_RULE_USED == AGGLO_CLUST):
-				if ((Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j]) < target_val):
-					target_val = (Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j])
+			if (DM_ID[i][j] >= 0) and (DM_XL[i][j] >= 0):
+				if ((Norm_DM_ID[i][j] * Norm_DM_XL[i][j]) > target_val):
+					target_val = (Norm_DM_ID[i][j] * Norm_DM_XL[i][j])
 					min_idx_i = i
 					min_idx_j = j
-			else:
-				if ((Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j]) > target_val):
-					target_val = (Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j])
-					min_idx_i = i
-					min_idx_j = j
-				elif (FlEq((Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j]), target_val) == True):	#((Norm_DistMat_Branch[i][j] * Norm_DistMat_XL[i][j]) == target_val):
+				elif (FlEq((Norm_DM_ID[i][j] * Norm_DM_XL[i][j]), target_val) == True):
 					"""
-					# condition add - sourya - 17.06.2016
 					equal value with respect to the earlier minimum
 					here we agglomerate the clusters according to the following condition:
-					1) if DistMat_Branch[i][j] is strictly lower then use the new cluster pair
-					2) if DistMat_Branch[i][j] = DistMat_Branch[min_idx_i][min_idx_j], 
-					and DistMat_XL[i][j] is strictly lower then use the new cluster pair
+					1) if DM_ID[i][j] is strictly lower then use the new cluster pair
+					2) if DM_ID[i][j] = DM_ID[min_idx_i][min_idx_j], 
+					and DM_XL[i][j] is strictly lower then use the new cluster pair
 					3) if both internode count and XL measures are identical for the above mentioned clusters, 
 					agglomerate the new cluster pair, if they have higher sum of cardinality
 					"""
-					#print '\n Equal case:  Norm_DistMat_Branch[i][j]: ', Norm_DistMat_Branch[i][j], ' Norm_DistMat_XL[i][j]: ', Norm_DistMat_XL[i][j]
-					if (DistMat_Branch[i][j] < DistMat_Branch[min_idx_i][min_idx_j]):
+					if (DM_ID[i][j] < DM_ID[min_idx_i][min_idx_j]):
 						min_idx_i = i
 						min_idx_j = j
 					else:
-						if (FlEq(DistMat_Branch[i][j], DistMat_Branch[min_idx_i][min_idx_j]) == True):	#(DistMat_Branch[i][j] == DistMat_Branch[min_idx_i][min_idx_j]):
-							if (DistMat_XL[i][j] < DistMat_XL[min_idx_i][min_idx_j]):
+						if (FlEq(DM_ID[i][j], DM_ID[min_idx_i][min_idx_j]) == True):
+							if (DM_XL[i][j] < DM_XL[min_idx_i][min_idx_j]):
 								min_idx_i = i
 								min_idx_j = j
 							else:
-								if (FlEq(DistMat_XL[i][j], DistMat_XL[min_idx_i][min_idx_j]) == True):	#(DistMat_XL[i][j] == DistMat_XL[min_idx_i][min_idx_j]):
+								if (FlEq(DM_XL[i][j], DM_XL[min_idx_i][min_idx_j]) == True):
 									# higher sum of cardinality of the new cluster pair
-									if (len(clust_species_list[i]) + len(clust_species_list[j])) > (len(clust_species_list[min_idx_i]) + len(clust_species_list[min_idx_j])):
+									if (len(clust_species_list[i]) + len(clust_species_list[j])) \
+										> (len(clust_species_list[min_idx_i]) + len(clust_species_list[min_idx_j])):
 										min_idx_i = i
 										min_idx_j = j
 						
 	return min_idx_i, min_idx_j
 
-##---------------------------------------------
-# sourya - keep this function but as a commented entry
-##----------------------------------------------
-#"""
-#finds the minimum of the distance matrix
-#when only branch count based measure is used
-#"""
-#def Find_Unique_Min(Norm_DistMat_Branch, nclust):
-	#target_val = Norm_DistMat_Branch[0][1]
-	#min_idx_i = 0
-	#min_idx_j = 1
-	#for i in range(nclust - 1):
-		#for j in range(i+1, nclust):
-			#if (i == j):
-				#continue
-			#if (Norm_DistMat_Branch[i][j] < target_val):
-				#target_val = Norm_DistMat_Branch[i][j]
-				#min_idx_i = i
-				#min_idx_j = j
-	
-	#return min_idx_i, min_idx_j
+#---------------------------------------------
+"""
+this is the second version of the function 
+here also, internode count and excess gene count based measures are used
+but the positional rank of excess gene count is checked to remove a few error cases
+"""
+def Find_Unique_Min_PNJSTXL_Version2(DM_ID, Norm_DM_ID, DM_XL, Norm_DM_XL, nclust, clust_species_list):
+	"""
+	at first, use the DM_XL (containing the absolute values of excess gene leaf count for individual couplets)
+	to create a sorted array
+	"""
+	Sorted_DM_XL = []
 
-#-------------------------------------------
-"""
-this function is a new version, to select the couplet with minimum aggregated rank
-ranks are computed for both XL and branch count
-minimum sum of ranks are considered
-"""
-def Find_Unique_Min_RankBased(DistMat_Branch, Norm_DistMat_Branch, DistMat_XL, \
-	Norm_DistMat_XL, nclust, clust_species_list, outfile, RankMergeMethod):
+	for i in range(nclust - 1):
+		for j in range(i+1, nclust):
+			if (i == j):
+				continue
+			if (DM_ID[i][j] >= 0) and (DM_XL[i][j] >= 0):	# check for valid entry
+				Sorted_DM_XL.append(DM_XL[i][j])
 	
+	"""
+	find the unique elements of array
+	we have found that using set based unique operation is highly efficient
+	"""
+	Sorted_DM_XL = list(set(Sorted_DM_XL))
+	
+	# sort the list in ascending order
+	Sorted_DM_XL.sort()
+	# no of elements in the sorted array
+	len_Sorted_DM_XL = len(Sorted_DM_XL)
+	
+	"""
+	this is a flag variable which is set when the first valid distance element is found
+	"""
+	tgt_found = 0
+	
+	for i in range(nclust - 1):
+		for j in range(i+1, nclust):
+			if (i == j):
+				continue
+			if (DM_ID[i][j] >= 0) and (DM_XL[i][j] >= 0):
+				"""
+				check the positional rank of the XL based distance matrix entry (absolute)
+				"""
+				curr_DM_XL = DM_XL[i][j]
+				rank_curr_DM_XL = Sorted_DM_XL.index(DM_XL[i][j])
+				if (rank_curr_DM_XL <= int(round(len_Sorted_DM_XL / 2))):	#condition - sourya
+					if (tgt_found == 0):
+						tgt_found = 1
+						target_val = (Norm_DM_ID[i][j] * Norm_DM_XL[i][j])
+						min_idx_i = i
+						min_idx_j = j
+					else:
+						if ((Norm_DM_ID[i][j] * Norm_DM_XL[i][j]) > target_val):
+							target_val = (Norm_DM_ID[i][j] * Norm_DM_XL[i][j])
+							min_idx_i = i
+							min_idx_j = j
+						elif (FlEq((Norm_DM_ID[i][j] * Norm_DM_XL[i][j]), target_val) == True):
+							"""
+							equal value with respect to the earlier minimum
+							here we agglomerate the clusters according to the following condition:
+							1) if DM_ID[i][j] is strictly lower then use the new cluster pair
+							2) if DM_ID[i][j] = DM_ID[min_idx_i][min_idx_j], 
+							and DM_XL[i][j] is strictly lower then use the new cluster pair
+							3) if both internode count and XL measures are identical for the above mentioned clusters, 
+							agglomerate the new cluster pair, if they have higher sum of cardinality
+							"""
+							if (DM_ID[i][j] < DM_ID[min_idx_i][min_idx_j]):
+								min_idx_i = i
+								min_idx_j = j
+							else:
+								if (FlEq(DM_ID[i][j], DM_ID[min_idx_i][min_idx_j]) == True):
+									if (DM_XL[i][j] < DM_XL[min_idx_i][min_idx_j]):
+										min_idx_i = i
+										min_idx_j = j
+									else:
+										if (FlEq(DM_XL[i][j], DM_XL[min_idx_i][min_idx_j]) == True):
+											# higher sum of cardinality of the new cluster pair
+											if (len(clust_species_list[i]) + len(clust_species_list[j])) \
+												> (len(clust_species_list[min_idx_i]) + len(clust_species_list[min_idx_j])):
+												min_idx_i = i
+												min_idx_j = j
+
+	return min_idx_i, min_idx_j
+
+#---------------------------------------------
+"""
+this is the third version of the PNJSTXL / IDXL method
+here, the positional rank of XL based distance matrix is used
+also, zero mean unit variance of the relative ID and XL distance matrices are employed
+"""
+def Find_Unique_Min_PNJSTXL_Version3(DM_ID, Norm_DM_ID, DM_XL, Norm_DM_XL, nclust, TaxaList, outfile):
+
 	if (DEBUG_LEVEL >= 2):
 		fp = open(outfile, 'a')
-	
-	Norm_DistMat_List = []
-	DistMat_XL_List = []
-	# add - sourya
-	Norm_DistMat_XL_List = []
-	
+		fp.write('\n\n\n ==>>>> printing contents of Correlation between NDM_ID and NDM_XL --->>> \n\n')
+
+	"""
+	at first, use the DM_XL (containing the absolute values of excess gene leaf count for individual couplets)
+	to create a sorted array
+	"""
+	Sorted_DM_XL = []
+
+	"""
+	create two arrays containing the relative ID and XL based distance
+	"""
+	List_Norm_DM_ID = []
+	List_Norm_DM_XL = []
 	for i in range(nclust - 1):
 		for j in range(i+1, nclust):
 			if (i == j):
 				continue
-			Norm_DistMat_List.append(Norm_DistMat_Branch[i][j])
-			DistMat_XL_List.append((DistMat_XL[i][j]))
-			# add - sourya
-			Norm_DistMat_XL_List.append((Norm_DistMat_XL[i][j]))
+			if (DM_XL[i][j] >= 0) and (DM_ID[i][j] >= 0):	# check for valid entry
+				List_Norm_DM_ID.append(Norm_DM_ID[i][j])
+				List_Norm_DM_XL.append(Norm_DM_XL[i][j])
+				Sorted_DM_XL.append(DM_XL[i][j])
 	
-	Norm_DistMat_List.sort()
-	DistMat_XL_List.sort()
-	# add - sourya
-	Norm_DistMat_XL_List.sort()
+	"""
+	find the unique elements of array
+	we have found that using set based unique operation is highly efficient
+	"""
+	Sorted_DM_XL = list(set(Sorted_DM_XL))
 	
-	if (RankMergeMethod == SIMPLE_SUM_RANK):
-		min_idx_i = 0
-		min_idx_j = 1
-		min_rank_Norm_DistMat_List = Norm_DistMat_List.index(Norm_DistMat_Branch[0][1])
-		# comment - sourya
-		#min_rank_DistMat_XL_List = DistMat_XL_List.index(DistMat_XL[0][1])
-		# add - sourya
-		min_rank_DistMat_XL_List = Norm_DistMat_XL_List.index(Norm_DistMat_XL[0][1])
-		
-		min_rank = min_rank_Norm_DistMat_List + min_rank_DistMat_XL_List
-	elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
-		max_idx_i = 0
-		max_idx_j = 1
-		# we allow rank values from 1, instead of 0
-		max_rank_Norm_DistMat_List = Norm_DistMat_List.index(Norm_DistMat_Branch[0][1]) + 1
-		max_rank_DistMat_XL_List = DistMat_XL_List.index(DistMat_XL[0][1]) + 1
-		# compute the mean reciprocal rank value
-		max_rank = 0.5 * ((1.0 / max_rank_Norm_DistMat_List) + (1.0 / max_rank_DistMat_XL_List))
-		
-	for i in range(nclust - 1):
-		for j in range(i+1, nclust):
-			if (i == j):
-				continue
-			if (RankMergeMethod == SIMPLE_SUM_RANK):
-				Norm_DistMat_Rank = Norm_DistMat_List.index(Norm_DistMat_Branch[i][j])
-				# comment - sourya
-				#DistMat_XL_rank = DistMat_XL_List.index(DistMat_XL[i][j])
-				# add - sourya
-				DistMat_XL_rank = Norm_DistMat_XL_List.index(Norm_DistMat_XL[i][j])
-				
-				total_rank = Norm_DistMat_Rank + DistMat_XL_rank
-			elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
-				# we allow rank values from 1, instead of 0
-				Norm_DistMat_Rank = Norm_DistMat_List.index(Norm_DistMat_Branch[i][j]) + 1
-				DistMat_XL_rank = DistMat_XL_List.index(DistMat_XL[i][j]) + 1
-				total_rank = 0.5 * ((1.0 / Norm_DistMat_Rank) + (1.0 / DistMat_XL_rank))
-				
-			if (RankMergeMethod == SIMPLE_SUM_RANK):
-				if (total_rank < min_rank):
-					min_idx_i = i
-					min_idx_j = j
-					min_rank = total_rank
-					min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-					min_rank_DistMat_XL_List = DistMat_XL_rank
-					if (DEBUG_LEVEL >= 2):
-						fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-							' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
-								+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
-				elif (total_rank == min_rank):
+	# sort the list in ascending order
+	Sorted_DM_XL.sort()
+	# no of elements in the sorted array
+	len_Sorted_DM_XL = len(Sorted_DM_XL)
+	
+	"""
+	compute the mean and standard deviations of these two arrays
+	"""
+	mean_NDM_ID = Compute_Mean(List_Norm_DM_ID)
+	mean_NDM_XL = Compute_Mean(List_Norm_DM_XL)
+	stdev_NDM_ID = Pop_StDev(List_Norm_DM_ID)
+	stdev_NDM_XL = Pop_StDev(List_Norm_DM_XL)
+	
+	if (DEBUG_LEVEL >= 2): 
+		fp.write('\n mean_NDM_ID: ' + str(mean_NDM_ID) + ' mean_NDM_XL: ' + str(mean_NDM_XL) + \
+			'  stdev_NDM_ID: ' + str(stdev_NDM_ID) + '  stdev_NDM_XL: ' + str(stdev_NDM_XL))
+	
+	"""
+	this is a flag variable which is set when the first valid distance element is found
+	"""
+	tgt_found = 0
+	
+	for i in range(nclust):
+		if (DEBUG_LEVEL >= 2): 
+			fp.write('\n ' + str(i) + '--' + str(TaxaList[i]) + '--->>')
+		if (i > 0):
+			for j in range(i):
+				if ((DM_ID[i][j] >= 0) and (DM_XL[i][j] >= 0)):	# corresponding to a valid entry
+					if (FlEq(stdev_NDM_ID, 0) == True) or (FlEq(stdev_NDM_XL, 0) == True):
+						"""
+						here, standard deviation values of one or both of the relative 
+						distance matrices are 0, 
+						so, only the product of relative internode count 
+						and excess gene count measures are employed
+						"""
+						corr_val = Norm_DM_ID[i][j] * Norm_DM_XL[i][j]
+						if (DEBUG_LEVEL >= 2): 
+							fp.write(' ' + str(corr_val))	#print the correlation value
+						"""
+						check the positional rank of the XL based distance matrix entry (absolute)
+						"""
+						curr_DM_XL = DM_XL[i][j]
+						rank_curr_DM_XL = Sorted_DM_XL.index(DM_XL[i][j])
+						if (rank_curr_DM_XL <= int(round(len_Sorted_DM_XL / 2))):	#sourya
+							if (tgt_found == 0):
+								tgt_found = 1
+								min_DM_XL = curr_DM_XL
+								max_idx_i = i
+								max_idx_j = j
+							else:
+								if (curr_DM_XL < min_DM_XL):
+									min_DM_XL = curr_DM_XL
+									max_idx_i = i
+									max_idx_j = j
+								elif (FlEq(curr_DM_XL, min_DM_XL) == True):
+									"""
+									for equality case, check the ID (absolute) values
+									"""
+									if (DM_ID[i][j] < DM_ID[max_idx_i][max_idx_j]):
+										max_idx_i = i
+										max_idx_j = j
 					
-					# the first condition is added by - sourya - 17.06.2016
-					if (Norm_DistMat_Rank == min_rank_Norm_DistMat_List) and (DistMat_XL_rank == min_rank_DistMat_XL_List) and \
-						(DistMat_Branch[i][j] < DistMat_Branch[min_idx_i][min_idx_j]):
-						min_idx_i = i
-						min_idx_j = j
-						if (DEBUG_LEVEL >= 2):
-							fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-								' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
-									+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
-					
-					# comment - sourya
-					#if (Norm_DistMat_Rank < min_rank_Norm_DistMat_List) and (min_rank_DistMat_XL_List > 0):
-					# add - sourya
-					elif (Norm_DistMat_Rank < min_rank_Norm_DistMat_List) and ((min_rank_DistMat_XL_List > 0) or (Norm_DistMat_Rank == 0)):
-						min_idx_i = i
-						min_idx_j = j
-						min_rank = total_rank
-						min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-						min_rank_DistMat_XL_List = DistMat_XL_rank
-						if (DEBUG_LEVEL >= 2):
-							fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-								' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) \
-									+ '  min_rank_DistMat_XL_List: ' + str(min_rank_DistMat_XL_List))
-
-					## comment - sourya
-					#elif (min_rank_Norm_DistMat_List > 0) and (min_rank_DistMat_XL_List > 0) \
-						#and ((Norm_DistMat_Rank == 0) or (DistMat_XL_rank == 0)):
-						#min_idx_i = i
-						#min_idx_j = j
-						#min_rank = total_rank
-						#min_rank_Norm_DistMat_List = Norm_DistMat_Rank
-						#min_rank_DistMat_XL_List = DistMat_XL_rank
-						#if (DEBUG_LEVEL >= 2):
-							#fp.write('\n Within iteration --- min_idx_i ' + str(min_idx_i) + ' min_idx_j : ' + str(min_idx_j) + \
-								#' min_rank_Norm_DistMat_List: ' + str(min_rank_Norm_DistMat_List) + '  min_rank_DistMat_XL_List: ' + \
-									#str(min_rank_DistMat_XL_List))
-							
-			elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
-				if (total_rank > max_rank):
-					max_idx_i = i
-					max_idx_j = j
-					max_rank = total_rank
-					max_rank_Norm_DistMat_List = Norm_DistMat_Rank
-					max_rank_DistMat_XL_List = DistMat_XL_rank
-					if (DEBUG_LEVEL >= 2):
-						fp.write('\n Within iteration --- max_idx_i ' + str(max_idx_i) \
-							+ ' max_idx_j : ' + str(max_idx_j) + \
-							' max_rank_Norm_DistMat_List: ' + str(max_rank_Norm_DistMat_List) \
-								+ '  max_rank_DistMat_XL_List: ' + str(max_rank_DistMat_XL_List))
-
+					else:	#if (stdev_NDM_ID > 0) and (stdev_NDM_XL > 0):	# sourya
+						corr_val = ((mean_NDM_ID - Norm_DM_ID[i][j]) / stdev_NDM_ID) + ((mean_NDM_XL - Norm_DM_XL[i][j]) / stdev_NDM_XL)
+						if (DEBUG_LEVEL >= 2): 
+							fp.write(' ' + str(corr_val))	#print the correlation value
+						"""
+						as both stdev values are > 0, processing would be done by the correlation values
+						find the index (rank) of the current XL val 
+						process the element only if the XL value is comparatively low
+						"""
+						rank_curr_DM_XL = Sorted_DM_XL.index(DM_XL[i][j])
+						if (rank_curr_DM_XL <= int(round(len_Sorted_DM_XL / 2))):	#sourya
+							if (tgt_found == 0):
+								tgt_found = 1
+								max_corr_val = corr_val
+								max_idx_i = i
+								max_idx_j = j
+							else:
+								if (corr_val > max_corr_val):
+									max_corr_val = corr_val
+									max_idx_i = i
+									max_idx_j = j
+								elif (FlEq(corr_val, max_corr_val) == True):
+									"""
+									for equality case, first check whether the relative internode count is lower
+									"""
+									if (Norm_DM_ID[i][j] < Norm_DM_ID[max_idx_i][max_idx_j]):
+										max_idx_i = i
+										max_idx_j = j
+									else:
+										if (Norm_DM_XL[i][j] < Norm_DM_XL[max_idx_i][max_idx_j]):
+											max_idx_i = i
+											max_idx_j = j
+				else:
+					corr_val = -2
+					if (DEBUG_LEVEL >= 2): 
+						fp.write(' ' + str(corr_val))
+	
+	if (DEBUG_LEVEL >= 2): 
+		if (FlEq(stdev_NDM_ID, 0) == True) or (FlEq(stdev_NDM_XL, 0) == True):
+			fp.write('\n Final max correlation index i: ' + str(max_idx_i) + ' j: ' + str(max_idx_j) + \
+				'  Min XL: ' + str(min_DM_XL))
+		else:	#if (stdev_NDM_ID > 0) and (stdev_NDM_XL > 0):	# sourya
+			fp.write('\n Final max correlation index i: ' + str(max_idx_i) + ' j: ' + str(max_idx_j) + \
+				'  Max correlation: ' + str(max_corr_val))
+			
 	if (DEBUG_LEVEL >= 2):
 		fp.close()
 	
-	if (RankMergeMethod == SIMPLE_SUM_RANK):
-		return min_idx_i, min_idx_j
-	elif (RankMergeMethod == MEAN_RECIPROCAL_RANK):
-		return max_idx_i, max_idx_j
+	"""
+	reset the lists employed
+	"""
+	Sorted_DM_XL = []
+	List_Norm_DM_ID = []
+	List_Norm_DM_XL = []
+	
+	return max_idx_j, max_idx_i
+
+#---------------------------------------------
+"""
+this is the fourth version of the PNJSTXL / IDXL method
+here, zero mean unit variance of the relative ID and XL distance matrices, and also 
+the absolute distance matrices, are employed
+"""
+def Find_Unique_Min_PNJSTXL_Version4(DM_ID, Norm_DM_ID, DM_XL, Norm_DM_XL, nclust, TaxaList, outfile):
+
+	if (DEBUG_LEVEL >= 2):
+		fp = open(outfile, 'a')
+		fp.write('\n\n\n ==>>>> printing contents of Correlation between NDM_ID and NDM_XL --->>> \n\n')
+
+	"""
+	create two arrays containing the relative ID and XL based distance
+	"""
+	List_Norm_DM_ID = []
+	List_Norm_DM_XL = []
+	List_DM_XL = []
+	for i in range(nclust - 1):
+		for j in range(i+1, nclust):
+			if (i == j):
+				continue
+			if (DM_XL[i][j] >= 0) and (DM_ID[i][j] >= 0):	# check for valid entry
+				List_Norm_DM_ID.append(Norm_DM_ID[i][j])
+				List_Norm_DM_XL.append(Norm_DM_XL[i][j])
+				List_DM_XL.append(DM_XL[i][j])
+				
+	"""
+	compute the mean and standard deviations of these two arrays
+	"""
+	mean_NDM_ID = Compute_Mean(List_Norm_DM_ID)
+	mean_NDM_XL = Compute_Mean(List_Norm_DM_XL)
+	mean_DM_XL = Compute_Mean(List_DM_XL)
+	stdev_NDM_ID = Pop_StDev(List_Norm_DM_ID)
+	stdev_NDM_XL = Pop_StDev(List_Norm_DM_XL)
+	stdev_DM_XL = Pop_StDev(List_DM_XL)
+	
+	if (DEBUG_LEVEL >= 2): 
+		fp.write('\n mean_NDM_ID: ' + str(mean_NDM_ID) + ' mean_NDM_XL: ' + str(mean_NDM_XL) + ' mean_DM_XL: ' + str(mean_DM_XL) + \
+			'  stdev_NDM_ID: ' + str(stdev_NDM_ID) + '  stdev_NDM_XL: ' + str(stdev_NDM_XL) + ' stdev_DM_XL: ' + str(stdev_DM_XL))
+	
+	"""
+	this is a flag variable which is set when the first valid distance element is found
+	"""
+	tgt_found = 0
+	
+	for i in range(nclust):
+		if (DEBUG_LEVEL >= 2):
+			fp.write('\n ' + str(i) + '--' + str(TaxaList[i]) + '--->>')
+		if (i > 0):
+			for j in range(i):
+				if ((DM_ID[i][j] >= 0) and (DM_XL[i][j] >= 0)):	# condition add - sourya
+					if (FlEq(stdev_NDM_ID, 0) == True) or (FlEq(stdev_DM_XL, 0) == True) or (FlEq(stdev_NDM_XL, 0) == True):
+						"""
+						here, standard deviation values of one or both of the relative 
+						distance matrices are 0, 
+						so, only the product of relative internode count 
+						and excess gene count measures are employed
+						"""
+						corr_val = Norm_DM_ID[i][j] * Norm_DM_XL[i][j]
+						if (DEBUG_LEVEL >= 2):
+							fp.write(' ' + str(corr_val))	#print the correlation value
+						curr_DM_XL = DM_XL[i][j]
+						if (tgt_found == 0):
+							tgt_found = 1
+							min_DM_XL = curr_DM_XL
+							max_idx_i = i
+							max_idx_j = j
+						else:
+							if (curr_DM_XL < min_DM_XL):
+								min_DM_XL = curr_DM_XL
+								max_idx_i = i
+								max_idx_j = j
+							elif (FlEq(curr_DM_XL, min_DM_XL) == True):
+								"""
+								for equality case, check the ID (absolute) values
+								"""
+								if (DM_ID[i][j] < DM_ID[max_idx_i][max_idx_j]):
+									max_idx_i = i
+									max_idx_j = j
+					else:	#if (stdev_NDM_ID > 0) and (stdev_NDM_XL > 0):	# sourya
+						"""
+						as both stdev values are > 0, processing would be done by the correlation values 
+						computed using both the relative XL and ID distance values
+						and the absolute XL values
+						"""
+						corr_val = ((mean_NDM_ID - Norm_DM_ID[i][j]) / stdev_NDM_ID) \
+							+ ((mean_NDM_XL - Norm_DM_XL[i][j]) / stdev_NDM_XL) + ((mean_DM_XL - DM_XL[i][j]) / stdev_DM_XL)
+						if (DEBUG_LEVEL >= 2):
+							fp.write(' ' + str(corr_val))	#print the correlation value
+						if (tgt_found == 0):
+							tgt_found = 1
+							max_corr_val = corr_val
+							max_idx_i = i
+							max_idx_j = j
+						else:
+							if (corr_val > max_corr_val):
+								max_corr_val = corr_val
+								max_idx_i = i
+								max_idx_j = j
+							elif (FlEq(corr_val, max_corr_val) == True):
+								"""
+								for equality case, first check whether the relative internode count is lower
+								"""
+								if (Norm_DM_ID[i][j] < Norm_DM_ID[max_idx_i][max_idx_j]):
+									max_idx_i = i
+									max_idx_j = j
+								else:
+									if (Norm_DM_XL[i][j] < Norm_DM_XL[max_idx_i][max_idx_j]):
+										max_idx_i = i
+										max_idx_j = j
+				else:
+					corr_val = -2
+					if (DEBUG_LEVEL >= 2):
+						fp.write(' ' + str(corr_val))
+	
+	if (DEBUG_LEVEL >= 2): 
+		if (FlEq(stdev_NDM_ID, 0) == True) or (FlEq(stdev_DM_XL, 0) == True) or (FlEq(stdev_NDM_XL, 0) == True):
+			fp.write('\n Final max correlation index i: ' + str(max_idx_i) + ' j: ' + str(max_idx_j) + \
+				'  Min XL: ' + str(min_DM_XL))
+		else:	#if (stdev_NDM_ID > 0) and (stdev_NDM_XL > 0):	# sourya
+			fp.write('\n Final max correlation index i: ' + str(max_idx_i) + ' j: ' + str(max_idx_j) + \
+				'  Max correlation: ' + str(max_corr_val))
+			
+	if (DEBUG_LEVEL >= 2):
+		fp.close()
+	
+	"""
+	reset the lists employed
+	"""
+	List_Norm_DM_ID = []
+	List_Norm_DM_XL = []
+	List_DM_XL = []
+	
+	return max_idx_j, max_idx_i
 
 #-------------------------------------------
 """
@@ -472,35 +664,24 @@ def Merge_Cluster_Pair(Curr_tree, clust_species_list, min_idx_i, min_idx_j, taxa
 	
 	return Curr_tree
 
-
 #---------------------------------------------
 """
-this function refines the initial species tree (in terms of a star network) to 
-find the true species tree
+this function refines the initial species tree (in terms of a star network) to find the species tree
 it does using agglomerative clustering (NJ principle)
-the distance metric employed for NJ algorithm can vary depending on experimentation 
+the distance metric employed for NJ algorithm 
+consists of the couplet based internode count and excess gene leaf count
 """
-def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
-	Output_Text_File, RankMergeMethod):	#, DIST_MAT_TYPE):
+def Form_Species_Tree_NJ_Cluster(Curr_tree, Output_Text_File, METHOD_USED, DIST_MAT_TYPE):
 
 	"""
-	initially we have N of clusters for N taxa, where individual clusters are isolated
-	agglomerating technique introduces a bipartition (speciation) which contains two taxa as its children
+	initially we have N clusters for N taxa, where individual clusters are isolated taxon
+	agglomerating technique introduces a speciation node which contains two taxa as its children
 	"""
 	no_of_taxa_clust = len(COMPLETE_INPUT_TAXA_LIST)
 
 	"""
 	initialize the taxa clusters
 	copying the taxa list is done since initial clusters contain single species  
-	"""
-	"""
-	comment - sourya - 
-	we do not just copy ordinarily
-	"""
-	#clust_species_list = COMPLETE_INPUT_TAXA_LIST[:]
-	"""
-	add - sourya - 
-	we enclose individual elements within a list and then copy these single element lists
 	"""
 	clust_species_list = []
 	for i in range(len(COMPLETE_INPUT_TAXA_LIST)):
@@ -509,38 +690,37 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
 		clust_species_list.append(subl)
 
 	"""
-	allocate a 2D square matrix of no_of_taxa_clust dimension
+	allocate a 2D square matrix of dimension N X N
 	for a pair of taxa clusters Cx and Cy, 
-	it contains the employed main distance metric for the cluster pairs
+	it contains the couplet based internode count distance values
 	"""
 	Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
 	"""
 	allocate one new square matrix which will contain the 
-	NJ based modified distance matrix (used for minimum finding routine)
+	NJ based relative internode count for individual couplets
 	"""
 	Norm_Mean_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
 	"""
-	we allocate matrices containing excess gene count measure computed for individual couplets
+	Similarly allocate N X N matrix to store the XL measure for individual couplets
 	"""
 	XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 	
 	"""
-	allocate one new square matrix which will contain the normalized excess gene measure
-	used in NJ iterations
+	allocate one new square matrix which will contain the relative XL distance during NJ based iterations
 	"""
 	Norm_XLVal_DistMat_ClustPair_NJ = numpy.zeros((no_of_taxa_clust, no_of_taxa_clust), dtype=numpy.float)
 
 	"""
-	fill input distance matrices using accumulated branch count or internode count information
+	fill input distance matrix using internode count measure
 	"""
-	Fill_DistMat_BranchInfo(Mean_DistMat_ClustPair_NJ, METHOD_USED)
+	Fill_DistMat_InternodeCount(Mean_DistMat_ClustPair_NJ, no_of_taxa_clust)
 
 	"""
-	this function fills input distance matrices with excess gene information
+	fill input distance matrix with Xl measure
 	"""
-	Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, METHOD_USED)	#, DIST_MAT_TYPE)
+	Fill_DistMat_ExcessGeneCount(XLVal_DistMat_ClustPair_NJ, DIST_MAT_TYPE, no_of_taxa_clust)
 
 	#--------------------------------------------------------
 	"""
@@ -569,19 +749,12 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
 			XLVal_DistMat_ClustPair_NJ, Output_Text_File, 'sum_XLVal_Clust')
 		
 		"""
-		fill the normalized matrix entries
-		depending on the NJ type method employed
+		fill the relative distance matrix entries
 		"""
-		if (NJ_RULE_USED == AGGLO_CLUST):
-			FillAggloClustNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
-				Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
-			FillAggloClustNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
-				XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
-		else:
-			FillNJNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
-				Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
-			FillNJNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
-				XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
+		FillNJNormalizeMatrix(Norm_Mean_DistMat_ClustPair_NJ, \
+			Mean_DistMat_ClustPair_NJ, sum_DistMat_Clust, no_of_taxa_clust)
+		FillNJNormalizeMatrix(Norm_XLVal_DistMat_ClustPair_NJ, \
+			XLVal_DistMat_ClustPair_NJ, sum_XLVal_Clust, no_of_taxa_clust)
 
 		if (DEBUG_LEVEL >= 2):
 			PrintMatrixContent(no_of_taxa_clust, clust_species_list, Norm_Mean_DistMat_ClustPair_NJ, \
@@ -592,30 +765,20 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
 			
 		"""
 		find the cluster pairs having minimum distance values
-		
-		here we have used agglomerative clustering using normalized matrix entries
-		
-		here both Norm_Mean_DistMat_ClustPair_NJ and 
-		Norm_XLVal_DistMat_ClustPair_NJ matrices 
-		contain positive but small fraction entries
-		so we have to find the minimum among these elements 
-		(product of these two matrices in position specific way)
-		and find out the corresponding indices
-		
-		the minimum is stored in the element target_val
-		we have used "<" operator to find out the minimum of the elements
+		the distance measure consists of internode count and excess gene leaf count
 		"""
-		if (METHOD_USED == ProdNJSTXL):
-			min_idx_i, min_idx_j = Find_Unique_Min_XL(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
-				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, \
-					no_of_taxa_clust, clust_species_list, NJ_RULE_USED)
+		if (METHOD_USED == 1):
+			min_idx_i, min_idx_j = Find_Unique_Min_PNJSTXL_Version1(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list)
+		elif (METHOD_USED == 2):
+			min_idx_i, min_idx_j = Find_Unique_Min_PNJSTXL_Version2(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list)
+		elif (METHOD_USED == 3):
+			min_idx_i, min_idx_j = Find_Unique_Min_PNJSTXL_Version3(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
 		else:
-			min_idx_i, min_idx_j = Find_Unique_Min_RankBased(Mean_DistMat_ClustPair_NJ, \
-				Norm_Mean_DistMat_ClustPair_NJ, XLVal_DistMat_ClustPair_NJ, \
-					Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, \
-						Output_Text_File, RankMergeMethod)
-		
-		
+			min_idx_i, min_idx_j = Find_Unique_Min_PNJSTXL_Version4(Mean_DistMat_ClustPair_NJ, Norm_Mean_DistMat_ClustPair_NJ, \
+				XLVal_DistMat_ClustPair_NJ, Norm_XLVal_DistMat_ClustPair_NJ, no_of_taxa_clust, clust_species_list, Output_Text_File)
 		#---------------------------------------------------------------      
 		"""
 		note down the taxa list in these two indices (min_idx_i and min_idx_j) 
@@ -677,28 +840,46 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
 		
 		"""
 		now recompute the entries of this new row and column (which is indexed by no_of_taxa_clust), according to the NJ principle
-		compute Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m] entries where m != min_idx_i and m != min_idx_j
+		compute Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m] entries 
+		where m != min_idx_i and m != min_idx_j
 		"""
 		for m in range(no_of_taxa_clust):
 			if (m == min_idx_i) or (m == min_idx_j):
 				continue
 			
 			"""
-			update the distance matrices storing internode count and excess gene leaf count measures
-			maintain the symmetric property of individual distance matrices
+			update the distance matrix storing internode count
+			maintain the symmetric property of the distance matrix
 			"""
-
-			Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = (Mean_DistMat_ClustPair_NJ[min_idx_i][m] + \
-				Mean_DistMat_ClustPair_NJ[min_idx_j][m] - Mean_DistMat_ClustPair_NJ[min_idx_i][min_idx_j]) / 2.0
+			if (Mean_DistMat_ClustPair_NJ[min_idx_i][m] >= 0) and (Mean_DistMat_ClustPair_NJ[min_idx_j][m] < 0):
+				Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = \
+					Mean_DistMat_ClustPair_NJ[min_idx_i][m] - (Mean_DistMat_ClustPair_NJ[min_idx_i][min_idx_j] / 2.0)
+			elif (Mean_DistMat_ClustPair_NJ[min_idx_i][m] < 0) and (Mean_DistMat_ClustPair_NJ[min_idx_j][m] >= 0):
+				Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = \
+					Mean_DistMat_ClustPair_NJ[min_idx_j][m] - (Mean_DistMat_ClustPair_NJ[min_idx_i][min_idx_j] / 2.0)
+			else:
+				Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = (Mean_DistMat_ClustPair_NJ[min_idx_i][m] + \
+					Mean_DistMat_ClustPair_NJ[min_idx_j][m] - Mean_DistMat_ClustPair_NJ[min_idx_i][min_idx_j]) / 2.0
+			
+			# maintain symmetric property
 			Mean_DistMat_ClustPair_NJ[m][no_of_taxa_clust] = Mean_DistMat_ClustPair_NJ[no_of_taxa_clust][m]
 
-			if (METHOD_USED == MedNJSTXL):
-				XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = \
-					(XLVal_DistMat_ClustPair_NJ[min_idx_i][m] + XLVal_DistMat_ClustPair_NJ[min_idx_j][m] - (1.0 / len(COMPLETE_INPUT_TAXA_LIST))) / 2.0
+			"""
+			update the distance matrix storing excess gene leaf count
+			maintain the symmetric property of the distance matrix
+			"""
+			if (XLVal_DistMat_ClustPair_NJ[min_idx_i][m] >= 0) and (XLVal_DistMat_ClustPair_NJ[min_idx_j][m] < 0):
+				XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = XLVal_DistMat_ClustPair_NJ[min_idx_i][m]
+			elif (XLVal_DistMat_ClustPair_NJ[min_idx_i][m] < 0) and (XLVal_DistMat_ClustPair_NJ[min_idx_j][m] >= 0):
+				XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = XLVal_DistMat_ClustPair_NJ[min_idx_j][m]
 			else:
+				"""
+				simple averaging of XL values are used
+				"""
 				XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m] = \
 					(XLVal_DistMat_ClustPair_NJ[min_idx_i][m] + XLVal_DistMat_ClustPair_NJ[min_idx_j][m]) / 2.0
-				
+			
+			# maintain symmetric property
 			XLVal_DistMat_ClustPair_NJ[m][no_of_taxa_clust] = XLVal_DistMat_ClustPair_NJ[no_of_taxa_clust][m]
 
 		"""
@@ -741,3 +922,4 @@ def Form_Species_Tree_NJ_Cluster(Curr_tree, METHOD_USED, NJ_RULE_USED, \
 		no_of_taxa_clust = no_of_taxa_clust - 1
 
 	return
+
