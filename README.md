@@ -108,7 +108,8 @@ Sourya Bhattacharyya, Jayanta Mukherjee, IDXL: Species Tree Inference Using Inte
 For any queries, please contact
 ------------------------------
 
-1) Sourya Bhattacharyya
+Sourya Bhattacharyya 
+--------------
 
 La Jolla Institute of Allergy and Immunology (LIAI)
 
@@ -118,7 +119,8 @@ sourya.bhatta@gmail.com
 
 
 
-2) Jayanta Mukherjee 
+Jayanta Mukherjee 
+--------------
 
 Department of Computer Science and Engineering 
 
