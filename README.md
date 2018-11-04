@@ -95,24 +95,31 @@ If output_file_name is provided, corresponding directory is created (if not exis
 'Complete_Desription.txt' is also created within that directory.
 
 If -O option is not specified, a folder named IDXL_M[METHOD_TYPE]_D[DISTMAT_TYPE] is created in the same directory 
-containing the input trees.
+containing the input trees. A file named "outtree_Newick.tre" stores the final tree.
 
 
 Citation
 ---------
 
+Upon using this package, user should cite the following article:
+
+Sourya Bhattacharyya, Jayanta Mukherjee, IDXL: Species Tree Inference Using Internode Distance and Excess Gene Leaf Count, Journal of Molecular Evolution (Springer), volume 85, issue 1-2, pp. 57-78, 2017, DOI: 10.1007/s00239-017-9807-7
 
 
-
-
-*********************************
 For any queries, please contact
-*********************************
+------------------------------
 
-Sourya Bhattacharyya 
+Sourya Bhattacharyya
+La Jolla Institute of Allergy and Immunology (LIAI)
+La Jolla, CA 92037, USA
+sourya.bhatta@gmail.com
+
+Jayanta Mukherjee
 Department of Computer Science and Engineering
 Indian Institute of Technology Kharagpur
-<sourya.bhatta@gmail.com>
+WB 721302, India
+jay@cse.iitkgp.ernet.in
+
 
 
 
