@@ -1,62 +1,61 @@
 *********************************
-MNJSTXL & PNJSTXL
+IDXL (Species tree estimation using Internode Distance and eXcess gene Lineage)
 *********************************
 
-******************************
-Species tree estimation using internode count and excess gene leaves information
-******************************
-
-MNJSTXL & PNJSTXL are python based tools for computing species tree from a set of incongruent gene trees 
+IDXL is a python based tool for computing species tree from a set of incongruent gene trees 
 with Incomplete Lineage Sorting (ILS). Following measures between individual couplets are compurted 
 for species tree estimation.
 
-A) Internode count between individual couplets (proposed in NJst approach (Liu et. al. 2011))
+A) Internode distance between individual couplets (proposed in NJst approach (Liu et. al. 2011))
 
-B) A novel measure, termed as the "Excess gene leaves count between individual couplets", 
-computed for all the input gene trees.
+B) A novel couplet based measure, termed as the "Excess gene lineage", computed for all the input gene trees.
 
-These measures are used to form respective distance matrices, which are subsequently used for NJ 
-based species tree construction.
+These measures are used to form respective distance matrices, which are subsequently used for NJ based species tree construction.
 
-Description
+Method Description
 -----------------------
 
 Input
 -----------
 
-A collection of gene trees (formed by sampling individual genes from a group of taxa) 
-with overlapping taxa set, having topological incongruence 
-due to Incomplete Lineage Sorting (ILS). Gene trees may or may not be weighted; our species tree estimation method 
-does not consider the branch lengths of the tree.
+A collection of gene trees (formed by sampling individual genes from a group of taxa) with overlapping taxa set, having topological incongruence due to Incomplete Lineage Sorting (ILS). Gene trees may or may not be weighted; our species tree estimation method does not consider the branch lengths of the tree.
 
-Input gene trees can be either in NEWICK format or in NEXUS format. 
-However, all the gene trees should have identical input formats. They should be placed in a 
-standard tree list file, according to the syntax of NEXUS or NEWICK formats. Such a tree list 
-text file is to be provided as an input of this executable.
+Input gene trees can be either in NEWICK format or in NEXUS format. However, all the gene trees should have identical input formats. They should be placed in a standard tree list file, according to the syntax of NEXUS or NEWICK formats. Such a tree list text file is to be provided as an input of this executable.
 
 Output
 ----------
 
-A species tree covering all the taxa of the gene trees. Output species tree 
-is generated in the NEWICK format.
+A species tree covering all the taxa of the gene trees. Output species tree is generated in the NEWICK format.
 
-Methods implemented
-------------------------------
+Method implemented
+---------------------
+
+First we create the following two distance matrices:
+
+I = matrix of average internode distance for individual couplets, as proposed in the method NJst (Liu et. al. 2011)
+
+X = matrix of excess gene lineage for individual couplets (mean value for individual couplets)
+
+      
+      
+
+
+
+
+
+
 
 We have implemented following 2 kinds of methods for species tree estimation methods.
 
 A) MNJstXL (or MedNJstXL): 
 
-This approach computes the following two separate distance matrices:
+This approach computes the   separate 
 
-Let I = matrix of internode count of individual couplets
-      X = matrix of excess gene leaf count of individual couplets
+Let 
       
-      I is constructed using the average internode count measure for individual couplets (according to the 
-      procedure mentioned in NJst (Liu et. al. 2011))
       
-      X is constructed by using the mean of average XL and the filtered average XL measures for 
-      individual couplets. The concept of filtered averaging is described in the paper.
+      
+      
 
 Neighbor Joining (NJ) based species tree construction methods, compute the relative distance of individual 
 couplets, with respect to all other couplets, in terms of the given distance matrix.
