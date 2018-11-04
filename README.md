@@ -1,6 +1,5 @@
-*********************************
 IDXL (Species tree estimation using Internode Distance and eXcess gene Lineage)
-*********************************
+----------------------------
 
 IDXL is a python based tool for computing species tree from a set of incongruent gene trees 
 with Incomplete Lineage Sorting (ILS). Following measures between individual couplets are compurted 
